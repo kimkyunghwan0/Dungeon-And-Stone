@@ -1,0 +1,40 @@
+깃 초기 설정
+git config --global user.name "유저이름"
+
+git config --global user.email "유저 이메일"
+
+.git 파일 생성
+git init
+
+깃 업로드 상태 명령어
+git status
+
+깃 커밋히스토리 조회
+git log
+
+다른 사람의 코드를 가져오는 Clone 
+git clone <git-address>
+#예시
+git clone https://github.com/TheAlgorithms/Python.git
+
+원격 저장소의 수정사항을 로컬로 가져오기 Pull & Fetch
+git pull <remote_name> <branch_name>
+#예시
+git pull git_test main
+
+
+특정 디렉토리에 있는 문서나, py파일만 올리고 싶어요
+# * 라는 와일드카드를 활용하면 된다.
+git add /new/*
+git add *.py
+
+
+깃 (프론트) 업로드
+cd C:\storage\webfront
+npm run deploy
+
+깃(백엔드) 업로드
+cd C:\storage
+git add . ->  (수정한 파일 전부 커밋 대상 목록에 올림)
+git commit -m "코멘트입력" (내 PC에 저장 + -m == 코멘트 남김)
+git push origin main (서버에 업로드 || 원격 저장소(origin)의 main 브랜치로 업로드)
