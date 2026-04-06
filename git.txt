@@ -28,13 +28,8 @@ git pull git_test main
 git add /new/*
 git add *.py
 
-
-깃 (프론트) 업로드
-cd C:\storage\webfront
-npm run deploy
-
 깃(백엔드) 업로드
-cd C:\storage
+cd C:\Dungeon And Stone
 git add . ->  (수정한 파일 전부 커밋 대상 목록에 올림)
 git commit -m "코멘트입력" (내 PC에 저장 + -m == 코멘트 남김)
-git push origin main (서버에 업로드 || 원격 저장소(origin)의 main 브랜치로 업로드)
+git push origin master (서버에 업로드 || 원격 저장소(origin)의 master(main) 브랜치로 업로드)

@@ -10,8 +10,7 @@ class GameMap:
         self.width, self.height = width, height
 
         # np.full(크기, 채울값)
-        self.tiles = np.full((width, height), fill_value=tile_types.floor, order="F") # order은 x와y변수의 순서를 변경. 기본은 [y,x]. order = "F" 일 시 [x,y]로 변경
-
+        self.tiles = np.full((width, height), fill_value=tile_types.wall, order="F")
         # 가로 3칸짜리 벽 생성.  x = 30,31,32 y = 22 
         # (30,22) █
         # (31,22) █
