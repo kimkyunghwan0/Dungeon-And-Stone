@@ -10,7 +10,7 @@ from game_map import GameMap
 import tile_types
 
 if TYPE_CHECKING:
-    from entity import Entity
+    from engine import Engine
 
 # 핵심 원칙: "방을 파낼 때 벽을 남기기 위해 내부만 파낸다"
 # RectangularRoom = "벽 포함 박스" (x1,y1이 좌상단, x2,y2가 우하단)
@@ -98,10 +98,11 @@ def generate_dungeon(
     map_width: int,             # 맵 너비
     map_height: int,            # 맵 높이
     max_monsters_per_room: int, # 방당 최대 몬스터 수
-    player: Entity,             # 플레이어 엔티티 (첫 번째 방에 배치됨)
+    engine: Engine,             # 플레이어 엔티티 (첫 번째 방에 배치됨)
 ) -> GameMap:
     """던전 맵 생성"""
-    dungeon = GameMap(map_width, map_height, entities=[player])
+    player = engine.player
+    dungeon = GameMap(engine, map_width, map_height, entities=[player])
 
     rooms: List[RectangularRoom] = []  # 생성된 방 목록
 
@@ -126,7 +127,7 @@ def generate_dungeon(
 
         if len(rooms) == 0:
             # 첫 번째 방 — 플레이어를 방 중앙에 배치
-            player.x, player.y = new_room.center
+            player.place(*new_room.center, dungeon)
         else:
             # 이후 방들 — 이전 방과 L자 복도로 연결
             for x, y in tunnel_between(rooms[-1].center, new_room.center):

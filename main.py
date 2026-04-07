@@ -4,7 +4,6 @@ import tcod
 import entity_factories
 from engine import Engine
 from procgen import generate_dungeon
-from input_handlers import EventHandler
 
 def main() -> None:
     # 화면 크기 설정 (픽셀이 아닌 타일 단위)
@@ -27,24 +26,23 @@ def main() -> None:
         "dejavu10x10_gs_tc.png", 32, 8, tcod.tileset.CHARMAP_TCOD
     )
 
-    event_handler = EventHandler()  # 키 입력 이벤트 처리기 생성
-
     # entity_factories의 player 원본을 복사해 독립적인 플레이어 인스턴스 생성
     player = copy.deepcopy(entity_factories.player)
 
+    engine = Engine(player=player)
+
     # 던전 맵 생성 (방 배치, 복도 연결, 몬스터 배치 포함)
-    game_map = generate_dungeon(
+    engine.game_map = generate_dungeon(
         max_rooms=max_rooms,
         room_min_size=room_min_size,
         room_max_size=room_max_size,
         map_width=map_width,
         map_height=map_height,
         max_monsters_per_room=max_monsters_per_room,
-        player=player
+        engine=engine,
     )
 
-    # 엔진 초기화 — 이벤트 처리기, 맵, 플레이어를 연결
-    engine = Engine(event_handler=event_handler, game_map=game_map, player=player)
+    engine.update_fov()
 
     # tcod 터미널 창 생성
     with tcod.context.new_terminal(
@@ -60,8 +58,7 @@ def main() -> None:
         # 메인 게임 루프 — 렌더링 → 이벤트 대기 → 처리 순으로 반복
         while True:
             engine.render(console=root_console, context=context)  # 화면 그리기
-            events = tcod.event.wait()                            # 키 입력 대기
-            engine.handle_events(events)                          # 입력 처리
+            engine.event_handler.handle_events()                  # 입력 대기
 
 # __name__ 확인으로 이 파일이 직접 실행될 때만 main() 호출 (import 시에는 실행 안 됨)
 if __name__ == "__main__":

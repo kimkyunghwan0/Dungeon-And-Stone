@@ -1,44 +1,32 @@
-from typing import Iterable, Any
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from tcod.context import Context
 from tcod.console import Console
 from tcod.map import compute_fov
 
-from entity import Entity
-from game_map import GameMap
-from input_handlers import EventHandler
+from input_handlers import MainGameEventHandler
 
+if TYPE_CHECKING:
+    from entity import Actor
+    from game_map import GameMap
+    from input_handlers import EventHandler
 # 게임의 핵심 루프를 담당하는 클래스
 # 이벤트 처리 → 행동 수행 → FOV 갱신 → 화면 렌더링 순서로 동작
 class Engine:
-    # event_handler : 키 입력 이벤트 처리기 , game_map : 타일/엔티티 정보를 담은 맵 , player : 플레이어 엔티티
-    def __init__(self, event_handler: EventHandler, game_map: GameMap, player: Entity):
-        self.event_handler = event_handler
-        self.game_map = game_map
+    
+    # player : 플레이어 Actor 엔티티
+    # game_map은 __init__ 이후 main.py에서 engine.game_map = ... 으로 직접 할당됨
+    def __init__(self, player: Actor):
+        self.event_handler: EventHandler = MainGameEventHandler(self)  # 초기 상태는 일반 플레이
         self.player = player
-        self.update_fov()  # 1) Engine 초기화 시 → 게임 시작 직후 시야 확보
 
-    # 플레이어를 제외한 모든 엔티티(적)의 턴을 처리
+    # 플레이어를 제외한 살아있는 모든 Actor(적)의 턴을 처리
     def handle_enemy_turns(self) -> None:
-        for entity in self.game_map.entities - {self.player}:  # set 차집합으로 플레이어 제외
-            print(f'The {entity.name} wonders when it will get to take a real turn.')
-
-    # 매 프레임마다 발생한 이벤트(키 입력 등)를 순서대로 처리
-    def handle_events(self, events: Iterable[Any]) -> None:
-        for event in events:
-            # 이벤트를 해당 액션으로 변환 (이동, 종료 등)
-            action = self.event_handler.dispatch(event)
-
-            if action is None:  # 처리할 액션이 없으면 다음 이벤트로 넘어감
-                continue
-
-            action.perform(self, self.player)  # 액션 실행 (이동, 공격 등)
-
-            self.handle_enemy_turns()  # 플레이어 행동 후 적 턴 처리
-
-            # 2) 플레이어가 행동할 때마다 → 이동/행동 후 시야 갱신
-            self.update_fov()
-
+        for entity in set(self.game_map.actors) - {self.player}:  # set 차집합으로 플레이어 제외
+            if entity.ai:
+                entity.ai.perform()  # 각 적의 AI 행동 실행 (추적, 공격, 대기 등)
     # 플레이어 위치를 기준으로 시야(FOV)를 갱신
     def update_fov(self) -> None:
         """플레이어의 시점을 기준으로 보이는 영역을 다시 계산합니다."""
@@ -54,6 +42,13 @@ class Engine:
     # 현재 프레임을 화면에 그림
     def render(self, console: Console, context: Context) -> None:
         self.game_map.render(console)  # 맵(타일 + 엔티티)을 콘솔에 그림
+
+        # 화면 하단(y=47)에 플레이어 HP 표시
+        console.print(
+            x=1,
+            y=47,
+            string=f"HP: {self.player.fighter.hp}/{self.player.fighter.max_hp}",
+        )
 
         context.present(console)  # 콘솔 내용을 실제 화면에 출력
 
