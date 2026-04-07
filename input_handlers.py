@@ -4,7 +4,7 @@ from typing import Optional
 # tcod의 event 모듈만 사용
 import tcod.event
 
-from actions import Action, EscapeAction, MovementAction
+from actions import Action, BumpAction, EscapeAction
 
 # 이벤트 관리
 class EventHandler(tcod.event.EventDispatch[Action]):
@@ -20,16 +20,16 @@ class EventHandler(tcod.event.EventDispatch[Action]):
 
         # 위 방향키
         if key == tcod.event.K_UP:
-            action = MovementAction(dx=0, dy=-1)
+            action = BumpAction(dx=0, dy=-1)
         # 아래 방향키    
         elif key == tcod.event.K_DOWN:
-            action = MovementAction(dx=0, dy=1)
+            action = BumpAction(dx=0, dy=1)
         # 왼쪽 방향키    
         elif key == tcod.event.K_LEFT:
-            action = MovementAction(dx=-1, dy=0)
+            action = BumpAction(dx=-1, dy=0)
         # 오른쪽 방향키    
         elif key == tcod.event.K_RIGHT:
-            action = MovementAction(dx=1, dy=0)
+            action = BumpAction(dx=1, dy=0)
         # Ecs키
         elif key == tcod.event.K_ESCAPE:
             action = EscapeAction()

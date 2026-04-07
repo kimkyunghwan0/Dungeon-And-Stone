@@ -25,9 +25,7 @@ class EscapeAction(Action):
     def perform(self, engine: Engine, entity: Entity) -> None:
         raise SystemExit()
 
-# 동작
-# action == 좌표이동(dx,dy
-class MovementAction(Action):
+class ActionWithDirection(Action):
     def __init__(self, dx: int, dy: int):
         super().__init__()
 
@@ -35,14 +33,47 @@ class MovementAction(Action):
         self.dy = dy
 
     def perform(self, engine: Engine, entity: Entity) -> None:
+        raise NotImplementedError()
+
+# 공격 메서드
+class MeleeAction(ActionWithDirection):
+    def perform(self, engine: Engine, entity: Entity) -> None:
+        dest_x = entity.x + self.dx
+        dest_y = entity.y + self.dy
+        target = engine.game_map.get_blocking_entity_at_location(dest_x, dest_y)
+        if not target:
+            return  # 공격할 엔티티가 없습니다. 
+
+        print(f"You kick the {target.name}, much to its annoyance!")
+
+# 동작
+# action == 좌표이동(dx,dy
+class MovementAction(ActionWithDirection):
+    def perform(self, engine: Engine, entity: Entity) -> None:
         dest_x = entity.x + self.dx
         dest_y = entity.y + self.dy
 
         # 좌표가 맵 안에 있는지 확인
         if not engine.game_map.in_bounds(dest_x, dest_y):
             return  # 목적지가 경계를 벗어났습니다.
+        
         # 좌표가 걸을 수 있는지(벽) 확인
         if not engine.game_map.tiles["walkable"][dest_x, dest_y]:
             return  # 목적지가 타일로 막혀 있습니다.
-
+        
+        # 좌표가 목표(엔티티)에 닿았는지 확인
+        if engine.game_map.get_blocking_entity_at_location(dest_x, dest_y):
+            return  # 목적지가 엔티티에 의해 막혀 있습니다. 
         entity.move(self.dx, self.dy)    
+
+# 목적지 충돌 시 
+class BumpAction(ActionWithDirection):
+    def perform(self, engine: Engine, entity: Entity) -> None:
+        dest_x = entity.x + self.dx
+        dest_y = entity.y + self.dy
+
+        # MeleeAction와 MovementAction 클래스 중 어떤 클래스를 반환할지 
+        if engine.game_map.get_blocking_entity_at_location(dest_x, dest_y):
+            return MeleeAction(self.dx, self.dy).perform(engine, entity)
+        else:
+            return MovementAction(self.dx, self.dy).perform(engine, entity)

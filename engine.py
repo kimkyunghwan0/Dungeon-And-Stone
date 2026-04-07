@@ -1,4 +1,4 @@
-from typing import Set, Iterable, Any
+from typing import Iterable, Any
 
 from tcod.context import Context
 from tcod.console import Console
@@ -11,12 +11,15 @@ from input_handlers import EventHandler
 # 1) Engine 초기화 시 → 게임 시작 직후 시야 확보
 class Engine:
     # set : 엔티티 집합(리스트지만 안에 중복값 불가능) , event_handler : main.py의 이벤트 처리 , game_map : 맵의 크기 , player : 엔티티 플레이어
-    def __init__(self, entities: Set[Entity], event_handler: EventHandler, game_map: GameMap, player: Entity):
-        self.entities = entities
+    def __init__(self, event_handler: EventHandler, game_map: GameMap, player: Entity):
         self.event_handler = event_handler
         self.game_map = game_map
         self.player = player
         self.update_fov()
+
+    def handle_enemy_turns(self) -> None:
+        for entity in self.game_map.entities - {self.player}:
+            print(f'The {entity.name} wonders when it will get to take a real turn.')
 
     # 사용자 입력 대기 이벤트
     # 2) 플레이어가 행동할 때마다 → 이동할 때마다 시야 갱신
@@ -30,6 +33,8 @@ class Engine:
             
             action.perform(self, self.player)
             
+            self.handle_enemy_turns()
+
             # 3) 플레이어의 다음 동작 전에 FOV를 업데이트합니다
             self.update_fov()
 
@@ -51,12 +56,7 @@ class Engine:
     def render(self, console: Console, context: Context) -> None:
         # GameMap의 렌더링 메서드를 호출
         self.game_map.render(console)
-         # 시작좌표, 표시
-        for entity in self.entities:
-            # FOV 내에 있는 엔티티만 출력
-            if self.game_map.visible[entity.x, entity.y]:
-                console.print(entity.x, entity.y, entity.char, fg=entity.color)
-
+        
         # 실제 화면에 출력
         context.present(console)
 

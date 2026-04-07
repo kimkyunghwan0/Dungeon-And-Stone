@@ -1,13 +1,20 @@
+from __future__ import annotations
+
+from typing import Iterable, Optional, TYPE_CHECKING
+
 import numpy as np  # type: ignore
 from tcod.console import Console
 
 import tile_types
 
+if TYPE_CHECKING:
+    from entity import Entity
 
 class GameMap:
     # 정수값을 할당 받아 width와 hight를 설정.
-    def __init__(self, width: int, height: int):
+    def __init__(self, width: int, height: int, entities: Iterable[Entity] = ()):
         self.width, self.height = width, height
+        self.entities = set(entities)
 
         # np.full(크기, 채울값)
         self.tiles = np.full((width, height), fill_value=tile_types.wall, order="F")
@@ -21,6 +28,18 @@ class GameMap:
         # (32,22) █
         self.tiles[30:33, 22] = tile_types.wall
 
+    def get_blocking_entity_at_location(self, location_x: int, location_y: int) -> Optional[Entity]:
+        # Entity를 찾으면 → Entity 반환
+        # 못 찾으면     → None 반환
+        for entity in self.entities:
+            # entity.blocks_movement : 이동을 막는 엔티티인가?
+            # entity.x == location_xX : 좌표가 일치하는가?
+            # entity.y == location_yY : 좌표가 일치하는가?
+            if entity.blocks_movement and entity.x == location_x and entity.y == location_y:
+                return entity
+
+        return None
+    
     # 플레이어 이동 제한
     def in_bounds(self, x: int, y: int) -> bool:
         """x와 y가 이 지도의 경계 내에 있으면 True를 반환합니다."""
@@ -42,3 +61,8 @@ class GameMap:
             choicelist=[self.tiles["light"], self.tiles["dark"]], 
             default=tile_types.SHROUD 
         )
+
+        for entity in self.entities:
+            # FOV 내에 있는 엔티티만 출력
+            if self.visible[entity.x, entity.y]:
+                console.print(x=entity.x, y=entity.y, string=entity.char, fg=entity.color)
