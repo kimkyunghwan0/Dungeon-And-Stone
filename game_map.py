@@ -11,6 +11,10 @@ class GameMap:
 
         # np.full(크기, 채울값)
         self.tiles = np.full((width, height), fill_value=tile_types.wall, order="F")
+
+        self.visible = np.full((width, height), fill_value=False, order="F") # 플레이어가 현재 볼 수 있는 타일
+        self.explored = np.full((width, height), fill_value=False, order="F") # 플레이어가 이전에 본 타일
+
         # 가로 3칸짜리 벽 생성.  x = 30,31,32 y = 22 
         # (30,22) █
         # (31,22) █
@@ -24,6 +28,17 @@ class GameMap:
         return 0 <= x < self.width and 0 <= y < self.height
     
     # NumPy 배열을 통째로 콘솔에 복사
-    # self.tiles ->["dark"] 필드만 추출 ->콘솔 버퍼에 한 번에 복사 -> 화면 출력
+    # 1. self.tiles ->["dark"] 필드만 추출 ->콘솔 버퍼에 한 번에 복사 -> 화면 출력
+    # 2. --> np.select를 사용하면 콘드리스트에 지정된 내용을 기반으로 원하는 타일을 조건부로 그릴 수 있습
     def render(self, console: Console) -> None:
-        console.tiles_rgb[0:self.width, 0:self.height] = self.tiles["dark"]
+        """
+            맵을 렌더링합니다. 
+            타일이 "visible" 배열에 있으면 "light" 색상으로 그립니다. 
+            "visible" 배열에 없지만 "explored" 배열에 있으면 "dark" 색상으로 그립니다. 
+            그렇지 않으면 기본값은 "SHROUD"입니다. 
+        """ 
+        console.tiles_rgb[0:self.width, 0:self.height] = np.select( 
+            condlist=[self.visible, self.explored], 
+            choicelist=[self.tiles["light"], self.tiles["dark"]], 
+            default=tile_types.SHROUD 
+        )

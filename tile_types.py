@@ -23,6 +23,7 @@ tile_dt = np.dtype(
         ("walkable", np.bool),  # 이 타일 위를 걸을 수 있으면 True
         ("transparent", np.bool),  # 시야(FOV)를 막지 않으면 True
         ("dark", graphic_dt),  # 현재 시야 밖에 있을 때의 그래픽 정보
+        ("light", graphic_dt), # 타일이 FOV에 있을 때의 그래픽
     ]
 )
 
@@ -33,16 +34,26 @@ def new_tile(
     walkable: int, # 해당 타일을 지나갈 수 있는지 여부 1 | 0
     transparent: int, # 시야가 통과되는지 여부 1 | 0 
     dark: Tuple[int, Tuple[int, int, int], Tuple[int, int, int]], # 시야 밖(어두운 상태)에서의 타일 정보. [문자, 글자색, 배경색]
+    light: Tuple[int, Tuple[int, int, int], Tuple[int, int, int]],
 ) -> np.ndarray:
     """ 개별 타일 타입을 정의하기 위한 헬퍼 함수 """
-    return np.array((walkable, transparent, dark), dtype=tile_dt) # 타일 1개를 표현하는 구조화된 numpy 데이터 생성
+    return np.array((walkable, transparent, dark, light), dtype=tile_dt) # 타일 1개를 표현하는 구조화된 numpy 데이터 생성
+
+# 타일이 화면에 보이지 않거나 "탐색"되지 않았을 때 사용할 속성입니다. 검정색타일
+SHROUD = np.array((ord(" "), (255, 255, 255), (0, 0, 0)), dtype=graphic_dt)
 
 # 바닥 : 이동 가능, 시야 보임, 밝은색
 floor = new_tile(
-    walkable=True, transparent=True, dark=(ord(" "), (255, 255, 255), (50, 50, 150)),
+    walkable=True,
+    transparent=True,
+    dark=(ord(" "), (255, 255, 255), (50, 50, 150)),
+    light=(ord(" "), (255, 255, 255), (200, 180, 50)),
 )
 
 # 벽 : 이동 불가, 시야 차단, 어두운색
 wall = new_tile(
-    walkable=False, transparent=False, dark=(ord(" "), (255, 255, 255), (0, 0, 100)),
+    walkable=False,
+    transparent=False,
+    dark=(ord(" "), (255, 255, 255), (0, 0, 100)),
+    light=(ord(" "), (255, 255, 255), (130, 110, 50)),
 )

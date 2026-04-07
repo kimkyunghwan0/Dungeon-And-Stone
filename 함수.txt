@@ -1,0 +1,2 @@
+np.full(크기, 채울값)
+Tuple

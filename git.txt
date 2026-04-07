@@ -15,7 +15,12 @@ git log
 다른 사람의 코드를 가져오는 Clone 
 git clone <git-address>
 #예시
-git clone https://github.com/TheAlgorithms/Python.git
+git clone https://github.com/kimkyunghwan0/Dungeon-And-Stone.git
+
+# 가상환경 생성 및 패키지 설치
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
 
 원격 저장소의 수정사항을 로컬로 가져오기 Pull & Fetch
 git pull <remote_name> <branch_name>
