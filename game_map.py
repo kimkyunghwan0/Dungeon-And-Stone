@@ -25,16 +25,14 @@ class GameMap:
         # np.full(크기, 채울값) — 맵 전체를 기본값(벽)으로 초기화
         self.tiles = np.full((width, height), fill_value=tile_types.wall, order="F")
 
-        self.visible = np.full(
-            (width, height), fill_value=False, order="F"
-        ) # 플레이어가 현재 볼 수 있는 타일
-        self.explored = np.full(
-            (width, height), fill_value=False, order="F"
-        )  # 플레이어가 이전에 본 타일
+        # visible  : 플레이어가 현재 볼 수 있는 타일 (매 턴 update_fov()로 갱신)
+        self.visible = np.full((width, height), fill_value=False, order="F")
+        # explored : 한 번이라도 본 타일 (어둡게라도 계속 표시됨)
+        self.explored = np.full((width, height), fill_value=False, order="F")
 
     @property
     def actors(self) -> Iterator[Actor]:
-        """Iterate over this maps living actors."""
+        """맵에 있는 살아있는 Actor(플레이어 + 몬스터)를 순회합니다."""
         yield from (
             entity
             for entity in self.entities
@@ -53,42 +51,45 @@ class GameMap:
                 and entity.y == location_y
             ):
                 return entity
-
         return None
-    
+
+    # 특정 좌표에 있는 살아있는 Actor를 반환. 없으면 None 반환
+    # get_blocking_entity_at_location과 차이: 시체(blocks_movement=False)는 제외됨
     def get_actor_at_location(self, x: int, y: int) -> Optional[Actor]:
         for actor in self.actors:
             if actor.x == x and actor.y == y:
                 return actor
-
         return None
+
     # 주어진 좌표가 맵 경계 안에 있는지 확인
     def in_bounds(self, x: int, y: int) -> bool:
-        """x와 y가 이 지도의 경계 내에 있으면 True를 반환합니다."""
+        """x와 y가 이 맵의 경계 내에 있으면 True를 반환합니다."""
         return 0 <= x < self.width and 0 <= y < self.height  # 하나라도 벗어나면 False
 
     # 맵 타일과 엔티티를 콘솔에 그림
     # np.select를 사용해 visible/explored 상태에 따라 타일 색상을 조건부로 선택
     def render(self, console: Console) -> None:
         """
-            맵을 렌더링합니다.
-            타일이 "visible" 배열에 있으면 "light" 색상으로 그립니다.
-            "visible" 배열에 없지만 "explored" 배열에 있으면 "dark" 색상으로 그립니다.
-            그렇지 않으면 기본값은 "SHROUD"입니다.
+        타일 상태에 따라 세 가지 중 하나로 렌더링합니다:
+          - visible(현재 시야) → light 색상 (밝게)
+          - explored(이전에 본 곳) → dark 색상 (어둡게)
+          - 그 외 → SHROUD (완전히 검정, 미탐색 영역)
         """
-        console.tiles_rgb[0 : self.width, 0 : self.height] = np.select(
+        console.rgb[0 : self.width, 0 : self.height] = np.select(
             condlist=[self.visible, self.explored],
             choicelist=[self.tiles["light"], self.tiles["dark"]],
             default=tile_types.SHROUD,
         )
 
+        # render_order 값 오름차순으로 정렬 — 값이 낮을수록 먼저(아래에) 그려짐
+        # CORPSE(시체) < ITEM(아이템) < ACTOR(캐릭터) 순으로 겹침 처리
         entities_sorted_for_rendering = sorted(
             self.entities, key=lambda x: x.render_order.value
         )
-        
-        # FOV 내에 있는 엔티티만 출력 (시야 밖 엔티티는 숨김)
+
+        # 현재 시야(visible) 안에 있는 엔티티만 화면에 출력 (시야 밖은 숨김)
         for entity in entities_sorted_for_rendering:
             if self.visible[entity.x, entity.y]:
                 console.print(
-                    x=entity.x, y=entity.y, string=entity.char, fg=entity.color
+                    x=entity.x, y=entity.y, text=entity.char, fg=entity.color
                 )

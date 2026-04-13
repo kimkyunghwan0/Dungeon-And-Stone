@@ -1,6 +1,7 @@
 import copy
 import tcod
 
+import color
 import entity_factories
 from engine import Engine
 from procgen import generate_dungeon
@@ -12,7 +13,7 @@ def main() -> None:
 
     # 맵 크기 설정 (화면보다 작게 — 나머지 공간은 UI용)
     map_width = 80
-    map_height = 45
+    map_height = 43
 
     # 방 크기 및 개수 설정
     room_max_size = 10      # 방 하나의 최대 크기
@@ -21,9 +22,11 @@ def main() -> None:
 
     max_monsters_per_room = 2  # 방 하나에 등장할 수 있는 최대 몬스터 수
 
-    # 글꼴(타일셋) 지정. 32열 8행짜리 타일 이미지
-    tileset = tcod.tileset.load_tilesheet(
-        "dejavu10x10_gs_tc.png", 32, 8, tcod.tileset.CHARMAP_TCOD
+    # 글꼴(타일셋) 지정. TTF 폰트를 사용해 한글 유니코드 출력 지원
+    # dejavu10x10_gs_tc.png(ASCII 전용 비트맵)는 한글을 표시할 수 없어 교체
+    # tile_width/tile_height: 타일 한 칸의 픽셀 크기 (클수록 글자가 커짐)
+    tileset = tcod.tileset.load_truetype_font(
+        "C:/Windows/Fonts/malgun.ttf", tile_width=16, tile_height=16
     )
 
     # entity_factories의 player 원본을 복사해 독립적인 플레이어 인스턴스 생성
@@ -44,6 +47,11 @@ def main() -> None:
 
     engine.update_fov()
 
+    # 최초 실행 메시지
+    engine.message_log.add_message(
+        "Hello and welcome, adventurer, to yet another dungeon!", color.welcome_text
+    )
+
     # tcod 터미널 창 생성
     with tcod.context.new_terminal(
         screen_width,
@@ -57,8 +65,10 @@ def main() -> None:
 
         # 메인 게임 루프 — 렌더링 → 이벤트 대기 → 처리 순으로 반복
         while True:
-            engine.render(console=root_console, context=context)  # 화면 그리기
-            engine.event_handler.handle_events()                  # 입력 대기
+            root_console.clear()
+            engine.event_handler.on_render(console=root_console)
+            context.present(root_console)
+            engine.event_handler.handle_events(context)         
 
 # __name__ 확인으로 이 파일이 직접 실행될 때만 main() 호출 (import 시에는 실행 안 됨)
 if __name__ == "__main__":

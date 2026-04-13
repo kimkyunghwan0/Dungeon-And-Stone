@@ -38,3 +38,10 @@ cd C:\Dungeon And Stone
 git add . ->  (수정한 파일 전부 커밋 대상 목록에 올림)
 git commit -m "코멘트입력" (내 PC에 저장 + -m == 코멘트 남김)
 git push origin master (서버에 업로드 || 원격 저장소(origin)의 master(main) 브랜치로 업로드)
+
+깃 롤백
+git restore . # 최종커밋버전으로 롤백
+
+#특정 커밋 자체를 되돌리기(git log --online)로 버전 확인
+git revert 버전 (이력남음. 이전의 커밋 이력 남겨두고 신규 커밋)
+git reset 버전 (이력안남음. 롤백)

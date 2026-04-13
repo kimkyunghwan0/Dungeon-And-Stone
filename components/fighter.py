@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 from components.base_component import BaseComponent
 from input_handlers import GameOverEventHandler
 from render_order import RenderOrder
+import color
 
 if TYPE_CHECKING:
     from entity import Actor
@@ -42,11 +43,13 @@ class Fighter(BaseComponent):
         # 플레이어가 죽었을 때
         if self.engine.player is self.entity:
             death_message = "당신은 죽었습니다."
+            death_message_color = color.player_die
             # 이벤트 핸들러를 GameOver 상태로 전환 (방향키 등 일반 입력 차단)
             self.engine.event_handler = GameOverEventHandler(self.engine)
         # 몬스터가 죽었을 때
         else:
             death_message = f"{self.entity.name}을(를) 처치했습니다!"
+            death_message_color = color.enemy_die
 
         # 사망한 엔티티를 시체로 변환
         self.entity.char = "%"                              # 시체 기호
@@ -56,4 +59,4 @@ class Fighter(BaseComponent):
         self.entity.name = f"{self.entity.name} ~ 의 유해" # 이름을 "~의 유해"로 변경
         self.entity.render_order = RenderOrder.CORPSE       # 렌더 우선순위를 시체로 낮춤
 
-        print(death_message)
+        self.engine.message_log.add_message(death_message, death_message_color)

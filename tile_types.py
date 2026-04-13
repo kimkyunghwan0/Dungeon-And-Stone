@@ -2,7 +2,7 @@ from typing import Tuple
 
 import numpy as np  # type: ignore
 
-# Console.tiles_rgb와 호환되는 타일 그래픽 구조화된 데이터 타입
+# Console.rgb와 호환되는 타일 그래픽 구조화된 데이터 타입
 # ch : 문자(character)를 의미하며, 정수 형태로 저장
 # fg : 글자(전경) 색상
 # bg : 배경색(RGB)
