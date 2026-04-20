@@ -1,9 +1,11 @@
 import copy
+import traceback
+
 import tcod
 
 import color
-import entity_factories
 from engine import Engine
+import entity_factories
 from procgen import generate_dungeon
 
 def main() -> None:
@@ -21,6 +23,7 @@ def main() -> None:
     max_rooms = 30          # 던전 내 최대 방 개수
 
     max_monsters_per_room = 2  # 방 하나에 등장할 수 있는 최대 몬스터 수
+    max_items_per_room  = 2  # 방 하나에 존재할 수 있는 최대 아이템 수
 
     # 글꼴(타일셋) 지정. TTF 폰트를 사용해 한글 유니코드 출력 지원
     # dejavu10x10_gs_tc.png(ASCII 전용 비트맵)는 한글을 표시할 수 없어 교체
@@ -42,6 +45,7 @@ def main() -> None:
         map_width=map_width,
         map_height=map_height,
         max_monsters_per_room=max_monsters_per_room,
+        max_items_per_room=max_items_per_room,
         engine=engine,
     )
 
@@ -49,7 +53,7 @@ def main() -> None:
 
     # 최초 실행 메시지
     engine.message_log.add_message(
-        "Hello and welcome, adventurer, to yet another dungeon!", color.welcome_text
+        "환영합니다, 모험가여! 이 던전에서 살아남으십시오!", color.welcome_text
     )
 
     # tcod 터미널 창 생성
@@ -68,7 +72,16 @@ def main() -> None:
             root_console.clear()
             engine.event_handler.on_render(console=root_console)
             context.present(root_console)
-            engine.event_handler.handle_events(context)         
+
+            # 이벤트 대기 try catch
+            try:
+                for event in tcod.event.wait():
+                    context.convert_event(event)
+                    engine.event_handler.handle_events(event)
+            except Exception:  # 게임 중 발생한 예외를 처리
+                traceback.print_exc()  # 오류 내용을 stderr에 출력
+                # 동시에 게임 메시지 로그에도 오류를 표시해 플레이어가 볼 수 있도록 함
+                engine.message_log.add_message(traceback.format_exc(), color.error)
 
 # __name__ 확인으로 이 파일이 직접 실행될 때만 main() 호출 (import 시에는 실행 안 됨)
 if __name__ == "__main__":
