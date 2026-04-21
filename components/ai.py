@@ -148,7 +148,8 @@ class ConfusedEnemy(BaseAI):
         """
         if self.turns_remaining <= 0:
             self.engine.message_log.add_message(
-                f"{self.entity.name}의 혼란이 풀렸다."
+                # f"{self.entity.name}의 혼란이 풀렸다."
+                f"{self.entity.name} is no longer confused."
             )
             self.entity.ai = self.previous_ai
         else:

@@ -8,7 +8,11 @@ import components.ai
 import components.inventory
 from components.base_component import BaseComponent
 from exceptions import Impossible
-from input_handlers import AreaRangedAttackHandler, SingleRangedAttackHandler
+from input_handlers import (
+    ActionOrHandler,
+    AreaRangedAttackHandler,
+    SingleRangedAttackHandler,
+)
 
 if TYPE_CHECKING:
     from entity import Actor, Item
@@ -18,7 +22,7 @@ if TYPE_CHECKING:
 class Consumable(BaseComponent):
     parent: Item
 
-    def get_action(self, consumer: Actor) -> Optional[actions.Action]:
+    def get_action(self, consumer: Actor) -> Optional[ActionOrHandler]:
         """이 아이템 사용에 필요한 액션을 반환합니다.
 
         동작 흐름:
@@ -59,7 +63,7 @@ class ConfusionConsumable(Consumable):
     def __init__(self, number_of_turns: int):
         self.number_of_turns = number_of_turns  # 혼란 지속 턴 수
 
-    def get_action(self, consumer: Actor) -> Optional[actions.Action]:
+    def get_action(self, consumer: Actor) -> SingleRangedAttackHandler:
         """타겟 선택 화면으로 전환하고 None을 반환합니다.
 
         동작 흐름:
@@ -71,13 +75,13 @@ class ConfusionConsumable(Consumable):
         4. None 반환 → 이 턴에 즉시 행동이 실행되지 않음
         """
         self.engine.message_log.add_message(
-            "타겟을 선택하세요.", color.needs_target
+            # "타겟을 선택하세요."
+            "Select a target.", color.needs_target
         )
-        self.engine.event_handler = SingleRangedAttackHandler(
+        return SingleRangedAttackHandler(
             self.engine,
             callback=lambda xy: actions.ItemAction(consumer, self.parent, xy),
         )
-        return None
 
     def activate(self, action: actions.ItemAction) -> None:
         """선택된 타겟에 혼란 상태이상을 부여합니다.
@@ -95,14 +99,18 @@ class ConfusionConsumable(Consumable):
         target = action.target_actor
 
         if not self.engine.game_map.visible[action.target_xy]:
-            raise Impossible("시야 밖은 타겟으로 지정할 수 없습니다.")
+            # raise Impossible("시야 밖은 타겟으로 지정할 수 없습니다.")
+            raise Impossible("You cannot target an area that you cannot see.")
         if not target:
-            raise Impossible("타겟으로 지정할 적이 없습니다.")
+            # raise Impossible("타겟으로 지정할 적이 없습니다.")
+            raise Impossible("You must select an enemy to target.")
         if target is consumer:
-            raise Impossible("자기 자신에게는 사용할 수 없습니다!")
+            # raise Impossible("자기 자신에게는 사용할 수 없습니다!")
+            raise Impossible("You cannot confuse yourself!")
 
         self.engine.message_log.add_message(
-            f"{target.name}의 눈빛이 흐려지며 비틀거리기 시작한다!",
+            # f"{target.name}의 눈빛이 흐려지며 비틀거리기 시작한다!"
+            f"{target.name}'s eyes glaze over as it stumbles around!",
             color.status_effect_applied,
         )
         target.ai = components.ai.ConfusedEnemy(
@@ -117,7 +125,7 @@ class FireballDamageConsumable(Consumable):
         self.damage = damage  # 피해량
         self.radius = radius  # 범위 반경 (타일 단위)
 
-    def get_action(self, consumer: Actor) -> Optional[actions.Action]:
+    def get_action(self, consumer: Actor) -> AreaRangedAttackHandler:
         """범위 타겟 선택 화면으로 전환하고 None을 반환합니다.
 
         동작 흐름:
@@ -128,14 +136,14 @@ class FireballDamageConsumable(Consumable):
         4. None 반환 → 이 턴에 즉시 행동이 실행되지 않음
         """
         self.engine.message_log.add_message(
-            "타겟 지점을 선택하세요.", color.needs_target
+            # "타겟 지점을 선택하세요."
+            "Select a target location.", color.needs_target
         )
-        self.engine.event_handler = AreaRangedAttackHandler(
+        return AreaRangedAttackHandler(
             self.engine,
             radius=self.radius,
             callback=lambda xy: actions.ItemAction(consumer, self.parent, xy),
         )
-        return None
 
     def activate(self, action: actions.ItemAction) -> None:
         """선택된 좌표 반경 내 모든 Actor에게 피해를 줍니다.
@@ -152,19 +160,22 @@ class FireballDamageConsumable(Consumable):
         target_xy = action.target_xy
 
         if not self.engine.game_map.visible[target_xy]:
-            raise Impossible("시야 밖은 타겟으로 지정할 수 없습니다.")
+            # raise Impossible("시야 밖은 타겟으로 지정할 수 없습니다.")
+            raise Impossible("You cannot target an area that you cannot see.")
 
         targets_hit = False
         for actor in self.engine.game_map.actors:
             if actor.distance(*target_xy) <= self.radius:
                 self.engine.message_log.add_message(
-                    f"{actor.name}이(가) 불길에 휩싸여 {self.damage}의 피해를 입었다!"
+                    # f"{actor.name}이(가) 불길에 휩싸여 {self.damage}의 피해를 입었다!"
+                    f"The {actor.name} is engulfed in a fiery explosion, taking {self.damage} damage!"
                 )
                 actor.fighter.take_damage(self.damage)
                 targets_hit = True
 
         if not targets_hit:
-            raise Impossible("범위 내 대상이 없습니다.")
+            # raise Impossible("범위 내 대상이 없습니다.")
+            raise Impossible("There are no targets in the radius.")
         self.consume()
 
 
@@ -187,12 +198,14 @@ class HealingConsumable(Consumable):
 
         if amount_recovered > 0:
             self.engine.message_log.add_message(
-                f"{self.parent.name}을(를) 사용해 체력을 {amount_recovered} 회복했다!",
+                # f"{self.parent.name}을(를) 사용해 체력을 {amount_recovered} 회복했다!"
+                f"You consume the {self.parent.name}, and recover {amount_recovered} HP!",
                 color.health_recovered,
             )
             self.consume()
         else:
-            raise Impossible("당신은 이미 건강합니다.")
+            # raise Impossible("당신은 이미 건강합니다.")
+            raise Impossible("Your health is already full.")
 
 
 # 번개 스크롤 — 시야 내 가장 가까운 적에게 번개 피해를 줌
@@ -228,9 +241,11 @@ class LightningDamageConsumable(Consumable):
 
         if target:
             self.engine.message_log.add_message(
-                f"번개가 {target.name}에게 내리쳐 {self.damage}의 피해를 입혔다!"
+                # f"번개가 {target.name}에게 내리쳐 {self.damage}의 피해를 입혔다!"
+                f"A lightning bolt strikes the {target.name} with a loud thunder, for {self.damage} damage!"
             )
             target.fighter.take_damage(self.damage)
             self.consume()
         else:
-            raise Impossible("사정거리 내 적이 없습니다.")
+            # raise Impossible("사정거리 내 적이 없습니다.")
+            raise Impossible("No enemy is close enough to strike.")

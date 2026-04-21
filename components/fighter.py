@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from components.base_component import BaseComponent
-from input_handlers import GameOverEventHandler
 from render_order import RenderOrder
 import color
 
@@ -73,20 +72,21 @@ class Fighter(BaseComponent):
         - 사망 메시지를 메시지 로그에 추가
         """
         if self.engine.player is self.parent:
-            death_message = "당신은 죽었습니다."
+            # death_message = "당신은 죽었습니다."
+            death_message = "You died!"
             death_message_color = color.player_die
-            # 이벤트 핸들러를 GameOver 상태로 전환 (방향키 등 일반 입력 차단)
-            self.engine.event_handler = GameOverEventHandler(self.engine)
         else:
-            death_message = f"{self.parent.name}을(를) 처치했습니다!"
+            # death_message = f"{self.parent.name}을(를) 처치했습니다!"
+            death_message = f"{self.parent.name} is dead!"
             death_message_color = color.enemy_die
 
         # 사망한 엔티티를 시체로 변환
-        self.parent.char = "%"                               # 시체 기호
-        self.parent.color = (191, 0, 0)                     # 빨간색
-        self.parent.blocks_movement = False                  # 시체 위로 이동 가능
-        self.parent.ai = None                               # AI 제거 (더 이상 행동 안 함)
-        self.parent.name = f"{self.parent.name} ~ 의 유해"  # 이름을 "~의 유해"로 변경
+        self.parent.char = "%"                                       # 시체 기호
+        self.parent.color = (191, 0, 0)                             # 빨간색
+        self.parent.blocks_movement = False                          # 시체 위로 이동 가능
+        self.parent.ai = None                                        # AI 제거 (더 이상 행동 안 함)
+        # self.parent.name = f"{self.parent.name} ~ 의 유해"
+        self.parent.name = f"remains of {self.parent.name}"         # 이름을 "remains of ~"로 변경
         self.parent.render_order = RenderOrder.CORPSE        # 렌더 우선순위를 시체로 낮춤
 
         self.engine.message_log.add_message(death_message, death_message_color)

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing import Callable, Optional, Tuple, TYPE_CHECKING
+import os
+
+from typing import Callable, Optional, Tuple, TYPE_CHECKING, Union
 
 import tcod
 import actions
@@ -63,15 +65,76 @@ CONFIRM_KEYS = {
     tcod.event.K_KP_ENTER,
 }
 
+ActionOrHandler = Union[Action, "BaseEventHandler"]
+
+""" 
+    액션을 트리거하거나 활성 핸들러를 전환할 수 있는 이벤트 핸들러 반환 값입니다. 
+    핸들러가 반환되면 향후 이벤트에 대한 활성 핸들러가 됩니다. 
+    액션이 반환되면 시도되고, 유효하면 
+    MainGameEventHandler가 활성 핸들러가 됩니다. 
+"""
+
+
+class BaseEventHandler(tcod.event.EventDispatch[ActionOrHandler]):
+    def handle_events(self, event: tcod.event.Event) -> BaseEventHandler:
+        """이벤트를 처리하고 다음 활성 이벤트 핸들러를 반환합니다."""
+        state = self.dispatch(event)
+        if isinstance(state, BaseEventHandler):
+            return state
+        assert not isinstance(state, Action), f"{self!r} can not handle actions."
+        return self
+
+    def on_render(self, console: tcod.Console) -> None:
+        raise NotImplementedError()
+
+    def ev_quit(self, event: tcod.event.Quit) -> Optional[Action]:
+        raise SystemExit()
+
+class PopupMessage(BaseEventHandler):
+    """Display a popup text window."""
+
+    def __init__(self, parent_handler: BaseEventHandler, text: str):
+        self.parent = parent_handler
+        self.text = text
+
+    def on_render(self, console: tcod.Console) -> None:
+        """Render the parent and dim the result, then print the message on top."""
+        self.parent.on_render(console)
+        console.tiles_rgb["fg"] //= 8
+        console.tiles_rgb["bg"] //= 8
+
+        console.print(
+            console.width // 2,
+            console.height // 2,
+            self.text,
+            fg=color.white,
+            bg=color.black,
+            alignment=tcod.CENTER,
+        )
+
+    def ev_keydown(self, event: tcod.event.KeyDown) -> Optional[BaseEventHandler]:
+        """Any key returns to the parent handler."""
+        return self.parent
+    
 # ── 이벤트 핸들러 기본 클래스 ─────────────────────────────────────────────
 # 게임 상태(일반 플레이, 게임오버 등)에 따라 다른 핸들러를 사용
 # Engine.event_handler에 현재 상태에 맞는 핸들러 인스턴스를 교체해서 상태 전환
-class EventHandler(tcod.event.EventDispatch[Action]):
+class EventHandler(BaseEventHandler):
     def __init__(self, engine: Engine):
         self.engine = engine  # 엔진 참조 (플레이어, 맵 등에 접근하기 위해)
 
-    def handle_events(self, event: tcod.event.Event) -> None:
-        self.handle_action(self.dispatch(event))
+    def handle_events(self, event: tcod.event.Event) -> BaseEventHandler:
+        """Handle events for input handlers with an engine."""
+        action_or_state = self.dispatch(event)
+        if isinstance(action_or_state, BaseEventHandler):
+            return action_or_state
+        if self.handle_action(action_or_state):
+            # A valid action was performed.
+            if not self.engine.player.is_alive:
+                # The player was killed sometime during or after the action.
+                return GameOverEventHandler(self.engine)
+            return MainGameEventHandler(self.engine)  # Return to the main handler.
+        return self
 
     def handle_action(self, action: Optional[Action]) -> bool:
         """이벤트 메서드에서 반환된 액션을 처리합니다.
@@ -97,10 +160,6 @@ class EventHandler(tcod.event.EventDispatch[Action]):
         if self.engine.game_map.in_bounds(event.tile.x, event.tile.y):
             self.engine.mouse_location = event.tile.x, event.tile.y
 
-    # 프로그램 창 X 버튼 클릭 시 즉시 종료
-    def ev_quit(self, event: tcod.event.Quit) -> Optional[Action]:
-        raise SystemExit()
-
     # 현재 게임 화면을 콘솔에 그림 (서브클래스에서 오버라이드 가능)
     def on_render(self, console: tcod.Console) -> None:
         self.engine.render(console)
@@ -108,14 +167,7 @@ class EventHandler(tcod.event.EventDispatch[Action]):
 class AskUserEventHandler(EventHandler):
     """특별한 입력(타겟 선택, 인벤토리 등)이 필요한 액션 전용 이벤트 핸들러 기반 클래스."""
 
-    def handle_action(self, action: Optional[Action]) -> bool:
-        """유효한 액션이 수행됐으면 일반 게임 핸들러로 복귀합니다."""
-        if super().handle_action(action):
-            self.engine.event_handler = MainGameEventHandler(self.engine)
-            return True
-        return False
-
-    def ev_keydown(self, event: tcod.event.KeyDown) -> Optional[Action]:
+    def ev_keydown(self, event: tcod.event.KeyDown) -> Optional[ActionOrHandler]:
         """기본적으로 어떤 키를 눌러도 이 핸들러를 종료합니다."""
         if event.sym in {  # Shift, Ctrl, Alt 등 수정자 키는 무시
             tcod.event.K_LSHIFT,
@@ -128,17 +180,18 @@ class AskUserEventHandler(EventHandler):
             return None
         return self.on_exit()
 
-    def ev_mousebuttondown(self, event: tcod.event.MouseButtonDown) -> Optional[Action]:
+    def ev_mousebuttondown(
+        self, event: tcod.event.MouseButtonDown
+    ) -> Optional[ActionOrHandler]:
         """기본적으로 마우스 클릭 시 이 핸들러를 종료합니다."""
         return self.on_exit()
 
-    def on_exit(self) -> Optional[Action]:
+    def on_exit(self) -> Optional[ActionOrHandler]:
         """사용자가 액션을 취소하거나 나가려 할 때 호출됩니다.
 
         기본적으로 일반 게임 이벤트 핸들러로 복귀합니다.
         """
-        self.engine.event_handler = MainGameEventHandler(self.engine)
-        return None
+        return MainGameEventHandler(self.engine)
     
 class InventoryEventHandler(AskUserEventHandler):
     """인벤토리 아이템 선택 화면을 처리하는 핸들러 기반 클래스.
@@ -196,12 +249,13 @@ class InventoryEventHandler(AskUserEventHandler):
             try:
                 selected_item = player.inventory.items[index]
             except IndexError:
-                self.engine.message_log.add_message("잘못된 선택입니다.", color.invalid)
+                # self.engine.message_log.add_message("잘못된 선택입니다.", color.invalid)
+                self.engine.message_log.add_message("Invalid entry.", color.invalid)
                 return None
             return self.on_item_selected(selected_item)
         return super().ev_keydown(event)
 
-    def on_item_selected(self, item: Item) -> Optional[Action]:
+    def on_item_selected(self, item: Item) -> Optional[ActionOrHandler]:
         """유효한 아이템이 선택됐을 때 호출됩니다. 서브클래스에서 반드시 구현해야 합니다."""
         raise NotImplementedError()
 
@@ -209,9 +263,10 @@ class InventoryEventHandler(AskUserEventHandler):
 class InventoryActivateHandler(InventoryEventHandler):
     """인벤토리에서 아이템을 선택해 사용하는 핸들러."""
 
-    TITLE = "사용할 아이템 선택"
+    # TITLE = "사용할 아이템 선택"
+    TITLE = "Select an item to use"
 
-    def on_item_selected(self, item: Item) -> Optional[Action]:
+    def on_item_selected(self, item: Item) -> Optional[ActionOrHandler]:
         """선택된 아이템에 대한 사용 액션을 반환합니다."""
         return item.consumable.get_action(self.engine.player)
 
@@ -219,9 +274,10 @@ class InventoryActivateHandler(InventoryEventHandler):
 class InventoryDropHandler(InventoryEventHandler):
     """인벤토리에서 아이템을 선택해 버리는 핸들러."""
 
-    TITLE = "버릴 아이템 선택"
+    # TITLE = "버릴 아이템 선택"
+    TITLE = "Select an item to drop"
 
-    def on_item_selected(self, item: Item) -> Optional[Action]:
+    def on_item_selected(self, item: Item) -> Optional[ActionOrHandler]:
         """선택된 아이템을 버리는 액션을 반환합니다."""
         return actions.DropItem(self.engine.player, item)
 
@@ -241,7 +297,7 @@ class SelectIndexHandler(AskUserEventHandler):
         console.tiles_rgb["bg"][x, y] = color.white
         console.tiles_rgb["fg"][x, y] = color.black
 
-    def ev_keydown(self, event: tcod.event.KeyDown) -> Optional[Action]:
+    def ev_keydown(self, event: tcod.event.KeyDown) -> Optional[ActionOrHandler]:
         """이동 키 또는 확인 키를 처리합니다."""
         key = event.sym
         if key in MOVE_KEYS:
@@ -266,23 +322,25 @@ class SelectIndexHandler(AskUserEventHandler):
             return self.on_index_selected(*self.engine.mouse_location)
         return super().ev_keydown(event)
 
-    def ev_mousebuttondown(self, event: tcod.event.MouseButtonDown) -> Optional[Action]:
+    def ev_mousebuttondown(
+        self, event: tcod.event.MouseButtonDown
+    ) -> Optional[ActionOrHandler]:
         """마우스 좌클릭으로 타일을 선택합니다."""
         if self.engine.game_map.in_bounds(*event.tile):
             if event.button == 1:
                 return self.on_index_selected(*event.tile)
         return super().ev_mousebuttondown(event)
 
-    def on_index_selected(self, x: int, y: int) -> Optional[Action]:
+    def on_index_selected(self, x: int, y: int) -> Optional[ActionOrHandler]:
         """타일 좌표가 선택됐을 때 호출됩니다. 서브클래스에서 반드시 구현해야 합니다."""
         raise NotImplementedError()
 
 class LookHandler(SelectIndexHandler):
     """키보드로 맵을 탐색(커서 이동)할 수 있는 핸들러. '/' 키로 진입합니다."""
 
-    def on_index_selected(self, x: int, y: int) -> None:
+    def on_index_selected(self, x: int, y: int) -> MainGameEventHandler:
         """타일 선택 시 일반 게임 핸들러로 복귀합니다."""
-        self.engine.event_handler = MainGameEventHandler(self.engine)
+        return MainGameEventHandler(self.engine)
 
 # 단일공격대상
 class SingleRangedAttackHandler(SelectIndexHandler):
@@ -335,7 +393,7 @@ class AreaRangedAttackHandler(SelectIndexHandler):
 # ── 일반 플레이 상태 핸들러 ───────────────────────────────────────────────
 class MainGameEventHandler(EventHandler):
     # 눌린 키를 해당 Action으로 변환해 반환
-    def ev_keydown(self, event: tcod.event.KeyDown) -> Optional[Action]:
+    def ev_keydown(self, event: tcod.event.KeyDown) -> Optional[ActionOrHandler]:
         action: Optional[Action] = None
 
         key = event.sym  # 눌린 키의 심볼 코드
@@ -352,7 +410,7 @@ class MainGameEventHandler(EventHandler):
             raise SystemExit()  # 게임 종료
         elif key == tcod.event.K_v:
             # 'v' 키 → 메시지 이력 뷰어 열기
-            self.engine.event_handler = HistoryViewer(self.engine)
+            return HistoryViewer(self.engine)
 
         elif key == tcod.event.K_g:
             # 'g' 키 -> 아이템 줍기
@@ -360,13 +418,13 @@ class MainGameEventHandler(EventHandler):
 
         # 'i' 키 -> 인벤토리
         elif key == tcod.event.K_i:
-            self.engine.event_handler = InventoryActivateHandler(self.engine)
+            return InventoryActivateHandler(self.engine)
         # 'd' 키 -> 버리기 드롭다운메뉴    
         elif key == tcod.event.K_d:
-            self.engine.event_handler = InventoryDropHandler(self.engine)
+            return InventoryDropHandler(self.engine)
         # '/' 키 ->  지도확인
         elif key == tcod.event.K_SLASH:
-            self.engine.event_handler = LookHandler(self.engine)
+            return LookHandler(self.engine)
         # 매핑되지 않은 키는 None 반환 (아무 동작 없음)
         return action
 
@@ -374,9 +432,18 @@ class MainGameEventHandler(EventHandler):
 # ── 게임오버 상태 핸들러 ──────────────────────────────────────────────────
 # 플레이어 사망 후 활성화. Esc 키로 종료만 가능하고 이동/공격 불가
 class GameOverEventHandler(EventHandler):
-    def ev_keydown(self, event: tcod.event.KeyDown) -> None:
+    def on_quit(self) -> None:
+        """Handle exiting out of a finished game."""
+        if os.path.exists("savegame.sav"):
+            os.remove("savegame.sav")  # Deletes the active save file.
+        raise exceptions.QuitWithoutSaving()  # Avoid saving a finished game.
+
+    def ev_quit(self, event: tcod.event.Quit) -> None:
+        self.on_quit()
+
+    def ev_keydown(self, event: tcod.event.KeyDown) -> Optional[MainGameEventHandler]:
         if event.sym == tcod.event.K_ESCAPE:
-            raise SystemExit()
+            self.on_quit()
 
 
 # 메시지 이력 뷰어에서 스크롤에 사용하는 키 → 이동량 매핑
@@ -412,7 +479,7 @@ class HistoryViewer(EventHandler):
         log_console.print_box(
             0, 0, log_console.width, 1, "┤Message history├", alignment=tcod.CENTER
         )
-
+ 
         # cursor 위치까지의 메시지만 잘라서 렌더링 (스크롤 위치 반영)
         self.engine.message_log.render_messages(
             log_console,
@@ -443,4 +510,5 @@ class HistoryViewer(EventHandler):
         elif event.sym == tcod.event.K_END:
             self.cursor = self.log_length - 1  # 가장 최신 메시지로 이동
         else:  # 그 외 키 → 일반 플레이 상태로 복귀
-            self.engine.event_handler = MainGameEventHandler(self.engine)
+            return MainGameEventHandler(self.engine)
+        return None

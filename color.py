@@ -26,3 +26,6 @@ health_recovered = (0x0, 0xFF, 0x0) # 체력 회복
 bar_text   = white              # HP 수치 텍스트 — 흰색
 bar_filled = (0x0, 0x60, 0x0)  # HP 채워진 부분 — 진한 초록
 bar_empty  = (0x40, 0x10, 0x10)  # HP 빈 부분 — 어두운 빨강
+
+menu_title = (255, 255, 63)
+menu_text = white

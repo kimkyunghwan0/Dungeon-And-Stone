@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import lzma
+import pickle
+
 from typing import TYPE_CHECKING
 
 from tcod.console import Console
@@ -7,14 +10,12 @@ from tcod.map import compute_fov
 
 import exceptions
 
-from input_handlers import MainGameEventHandler
 from message_log import MessageLog
 from render_functions import render_bar, render_names_at_mouse_location
 
 if TYPE_CHECKING:
     from entity import Actor
     from game_map import GameMap
-    from input_handlers import EventHandler
 
 # 게임의 핵심 루프를 담당하는 클래스
 # 이벤트 처리 → 행동 수행 → FOV 갱신 → 화면 렌더링 순서로 동작
@@ -30,7 +31,6 @@ class Engine:
         - player        : 플레이어 Actor 엔티티
         - game_map은 이 __init__ 이후 main.py에서 engine.game_map = ... 으로 직접 할당됨
         """
-        self.event_handler: EventHandler = MainGameEventHandler(self)  # 초기 상태는 일반 플레이
         self.message_log = MessageLog()
         self.mouse_location = (0, 0)
         self.player = player
@@ -99,3 +99,8 @@ class Engine:
 
         # 마우스가 올라간 타일의 엔티티 이름을 HP 바 오른쪽(y=44)에 표시
         render_names_at_mouse_location(console=console, x=21, y=44, engine=self)
+    def save_as(self, filename: str) -> None:
+        """Save this Engine instance as a compressed file."""
+        save_data = lzma.compress(pickle.dumps(self))
+        with open(filename, "wb") as f:
+            f.write(save_data)

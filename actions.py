@@ -56,17 +56,20 @@ class PickupAction(Action):
         for item in self.engine.game_map.items:
             if actor_location_x == item.x and actor_location_y == item.y:
                 if len(inventory.items) >= inventory.capacity:
-                    raise exceptions.Impossible("인벤토리가 가득 찼습니다.")
+                    # raise exceptions.Impossible("인벤토리가 가득 찼습니다.")
+                    raise exceptions.Impossible("Your inventory is full.")
 
                 # 맵에서 아이템을 떼어내고 인벤토리로 소속을 옮김
                 self.engine.game_map.entities.remove(item)
                 item.parent = self.entity.inventory
                 inventory.items.append(item)
 
-                self.engine.message_log.add_message(f"{item.name}을(를) 주웠다!")
+                # self.engine.message_log.add_message(f"{item.name}을(를) 주웠다!")
+                self.engine.message_log.add_message(f"You picked up the {item.name}!")
                 return
 
-        raise exceptions.Impossible("여기에는 아무것도 없습니다.")
+        # raise exceptions.Impossible("여기에는 아무것도 없습니다.")
+        raise exceptions.Impossible("There is nothing here to pick up.")
 
 
 # 아이템 사용
@@ -182,7 +185,8 @@ class MeleeAction(ActionWithDirection):
         target = self.target_actor
 
         if not target:
-            raise exceptions.Impossible("공격대상이 없음.")
+            # raise exceptions.Impossible("공격대상이 없음.")
+            raise exceptions.Impossible("Nothing to attack.")
 
         # 실제 데미지 = 공격력 - 방어력 (방어력이 높으면 데미지가 0이 될 수 있음)
         damage = self.entity.fighter.power - target.fighter.defense
@@ -193,16 +197,19 @@ class MeleeAction(ActionWithDirection):
         else:
             attack_color = color.enemy_atk
 
-        attack_desc = f"{self.entity.name.capitalize()}가 {target.name}을(를) 공격!"
+        # attack_desc = f"{self.entity.name.capitalize()}가 {target.name}을(를) 공격!"
+        attack_desc = f"{self.entity.name.capitalize()} attacks {target.name}"
         if damage > 0:
             self.engine.message_log.add_message(
-                f"{attack_desc} {damage}만큼 피해를 입혔다.", attack_color
+                # f"{attack_desc} {damage}만큼 피해를 입혔다."
+                f"{attack_desc} for {damage} hit points.", attack_color
             )
             target.fighter.hp -= damage  # HP 감소 → 0이 되면 fighter.die() 자동 호출
         else:
             # 방어력이 공격력 이상일 때 — 공격이 막혔음을 알림
             self.engine.message_log.add_message(
-                f"{attack_desc} 하지만 피해를 입지 않았다.", attack_color
+                # f"{attack_desc} 하지만 피해를 입지 않았다."
+                f"{attack_desc} but does no damage.", attack_color
             )
 
 
@@ -220,15 +227,18 @@ class MovementAction(ActionWithDirection):
 
         # 좌표가 맵 안에 있는지 확인
         if not self.engine.game_map.in_bounds(dest_x, dest_y):
-            raise exceptions.Impossible("그쪽은 막혀있습니다.")  # 목적지가 맵 경계를 벗어남
+            # raise exceptions.Impossible("그쪽은 막혀있습니다.")  # 목적지가 맵 경계를 벗어남
+            raise exceptions.Impossible("That way is blocked.")
 
         # 좌표가 걸을 수 있는 타일인지(벽 여부) 확인
         if not self.engine.game_map.tiles["walkable"][dest_x, dest_y]:
-            raise exceptions.Impossible("그쪽은 막혀있습니다.")  # 목적지가 벽 타일
+            # raise exceptions.Impossible("그쪽은 막혀있습니다.")  # 목적지가 벽 타일
+            raise exceptions.Impossible("That way is blocked.")
 
         # 좌표에 이동을 막는 엔티티(적 등)가 있는지 확인
         if self.engine.game_map.get_blocking_entity_at_location(dest_x, dest_y):
-             raise exceptions.Impossible("그쪽은 막혀있습니다.")  # 다른 엔티티가 길을 막고 있음
+            # raise exceptions.Impossible("그쪽은 막혀있습니다.")  # 다른 엔티티가 길을 막고 있음
+            raise exceptions.Impossible("That way is blocked.")
 
         self.entity.move(self.dx, self.dy)
 

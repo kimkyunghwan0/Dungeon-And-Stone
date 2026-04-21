@@ -1,60 +1,31 @@
-import copy
 import traceback
 
 import tcod
 
 import color
-from engine import Engine
-import entity_factories
-from procgen import generate_dungeon
+import exceptions
+import input_handlers
+import setup_game
+
+def save_game(handler: input_handlers.BaseEventHandler, filename: str) -> None:
+    """If the current event handler has an active Engine then save it."""
+    if isinstance(handler, input_handlers.EventHandler):
+        handler.engine.save_as(filename)
+        print("Game saved.")
 
 def main() -> None:
     # 화면 크기 설정 (픽셀이 아닌 타일 단위)
     screen_width = 80
     screen_height = 50
 
-    # 맵 크기 설정 (화면보다 작게 — 나머지 공간은 UI용)
-    map_width = 80
-    map_height = 43
-
-    # 방 크기 및 개수 설정
-    room_max_size = 10      # 방 하나의 최대 크기
-    room_min_size = 6       # 방 하나의 최소 크기
-    max_rooms = 30          # 던전 내 최대 방 개수
-
-    max_monsters_per_room = 2  # 방 하나에 등장할 수 있는 최대 몬스터 수
-    max_items_per_room  = 2  # 방 하나에 존재할 수 있는 최대 아이템 수
-
     # 글꼴(타일셋) 지정. TTF 폰트를 사용해 한글 유니코드 출력 지원
     # dejavu10x10_gs_tc.png(ASCII 전용 비트맵)는 한글을 표시할 수 없어 교체
     # tile_width/tile_height: 타일 한 칸의 픽셀 크기 (클수록 글자가 커짐)
-    tileset = tcod.tileset.load_truetype_font(
-        "C:/Windows/Fonts/malgun.ttf", tile_width=16, tile_height=16
+    tileset = tcod.tileset.load_tilesheet(
+        "dejavu10x10_gs_tc.png", 32, 8, tcod.tileset.CHARMAP_TCOD
     )
 
-    # entity_factories의 player 원본을 복사해 독립적인 플레이어 인스턴스 생성
-    player = copy.deepcopy(entity_factories.player)
-
-    engine = Engine(player=player)
-
-    # 던전 맵 생성 (방 배치, 복도 연결, 몬스터 배치 포함)
-    engine.game_map = generate_dungeon(
-        max_rooms=max_rooms,
-        room_min_size=room_min_size,
-        room_max_size=room_max_size,
-        map_width=map_width,
-        map_height=map_height,
-        max_monsters_per_room=max_monsters_per_room,
-        max_items_per_room=max_items_per_room,
-        engine=engine,
-    )
-
-    engine.update_fov()
-
-    # 최초 실행 메시지
-    engine.message_log.add_message(
-        "환영합니다, 모험가여! 이 던전에서 살아남으십시오!", color.welcome_text
-    )
+    handler: input_handlers.BaseEventHandler = setup_game.MainMenu()
 
     # tcod 터미널 창 생성
     with tcod.context.new_terminal(
@@ -68,20 +39,31 @@ def main() -> None:
         root_console = tcod.Console(screen_width, screen_height, order="F")
 
         # 메인 게임 루프 — 렌더링 → 이벤트 대기 → 처리 순으로 반복
-        while True:
-            root_console.clear()
-            engine.event_handler.on_render(console=root_console)
-            context.present(root_console)
-
-            # 이벤트 대기 try catch
-            try:
-                for event in tcod.event.wait():
-                    context.convert_event(event)
-                    engine.event_handler.handle_events(event)
-            except Exception:  # 게임 중 발생한 예외를 처리
-                traceback.print_exc()  # 오류 내용을 stderr에 출력
-                # 동시에 게임 메시지 로그에도 오류를 표시해 플레이어가 볼 수 있도록 함
-                engine.message_log.add_message(traceback.format_exc(), color.error)
+        try:
+            while True:
+                root_console.clear()
+                handler.on_render(console=root_console)
+                context.present(root_console)
+                # 이벤트 대기 try catch
+                try:
+                    for event in tcod.event.wait():
+                        context.convert_event(event)
+                        handler = handler.handle_events(event)
+                except Exception:  # 게임 중 발생한 예외를 처리
+                    traceback.print_exc()  # 오류 내용을 stderr에 출력
+                    # 동시에 게임 메시지 로그에도 오류를 표시해 플레이어가 볼 수 있도록 함
+                    if isinstance(handler, input_handlers.EventHandler):
+                        handler.engine.message_log.add_message(
+                            traceback.format_exc(), color.error
+                        )
+        except exceptions.QuitWithoutSaving: # 강제종료
+            raise
+        except SystemExit:  # 저장 후 종료
+            save_game(handler, "savegame.sav")
+            raise
+        except BaseException:  # 예외 사항
+            save_game(handler, "savegame.sav")
+            raise
 
 # __name__ 확인으로 이 파일이 직접 실행될 때만 main() 호출 (import 시에는 실행 안 됨)
 if __name__ == "__main__":
