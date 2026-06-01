@@ -10,6 +10,8 @@ from render_order import RenderOrder
 if TYPE_CHECKING:
     from components.ai import BaseAI
     from components.consumable import Consumable
+    from components.equipment import Equipment
+    from components.equippable import Equippable
     from components.fighter import Fighter
     from components.inventory import Inventory
     from components.level import Level
@@ -142,6 +144,7 @@ class Actor(Entity):
         color: Tuple[int, int, int] = (255, 255, 255),
         name: str = "<Unnamed>",
         ai_cls: Type[BaseAI],
+        equipment: Equipment,
         fighter: Fighter,
         inventory: Inventory,
         level: Level,
@@ -172,6 +175,9 @@ class Actor(Entity):
         # AI 클래스를 인스턴스화해 연결. self(이 Actor)를 넘겨서 자신을 조종하게 함
         self.ai: Optional[BaseAI] = ai_cls(self)
 
+        self.equipment: Equipment = equipment
+        self.equipment.parent = self
+        
         self.fighter = fighter
         self.fighter.parent = self  # Fighter가 자신의 소유 엔티티를 알 수 있도록 역참조 연결
 
@@ -201,7 +207,8 @@ class Item(Entity):
         char: str = "?",
         color: Tuple[int, int, int] = (255, 255, 255),
         name: str = "<Unnamed>",
-        consumable: Consumable,
+        consumable: Optional[Consumable] = None,
+        equippable: Optional[Equippable] = None,
     ):
         """아이템 엔티티를 초기화합니다.
 
@@ -226,4 +233,10 @@ class Item(Entity):
         )
 
         self.consumable = consumable
-        self.consumable.parent = self
+        if self.consumable:
+            self.consumable.parent = self
+
+        self.equippable = equippable
+
+        if self.equippable:
+            self.equippable.parent = self

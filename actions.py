@@ -105,7 +105,8 @@ class ItemAction(Action):
         consumable.activate(self)를 호출해 실제 효과 처리를 아이템에 위임.
         self(ItemAction) 자체를 컨텍스트로 전달하므로 아이템이 사용자/타겟 정보를 알 수 있음.
         """
-        self.item.consumable.activate(self)
+        if self.item.consumable:
+            self.item.consumable.activate(self)
 
 
 # 아이템 버리기
@@ -116,8 +117,19 @@ class DropItem(ItemAction):
         실제 처리는 Inventory.drop()에 위임.
         아이템은 버린 위치의 맵 엔티티로 다시 등록되어 다시 주울 수 있음.
         """
+        if self.entity.equipment.item_is_equipped(self.item):
+            self.entity.equipment.toggle_equip(self.item)
+            
         self.entity.inventory.drop(self.item)
 
+class EquipAction(Action):
+    def __init__(self, entity: Actor, item: Item):
+        super().__init__(entity)
+
+        self.item = item
+
+    def perform(self) -> None:
+        self.entity.equipment.toggle_equip(self.item)
 
 # 아무 행동도 하지 않고 한 턴을 소비
 class WaitAction(Action):

@@ -32,8 +32,8 @@ max_monsters_by_floor = [
 item_chances: Dict[int, List[Tuple[Entity, int]]] = {
     0: [(entity_factories.health_potion, 35)],       # 모든 층: 회복 포션
     2: [(entity_factories.confusion_scroll, 10)],    # 2층부터: 혼란 스크롤 추가
-    4: [(entity_factories.lightning_scroll, 25)],    # 4층부터: 번개 스크롤 추가
-    6: [(entity_factories.fireball_scroll, 25)],     # 6층부터: 파이어볼 스크롤 추가
+    4: [(entity_factories.lightning_scroll, 25), (entity_factories.sword, 5)],    # 4층부터: 번개 스크롤, 칼 추가
+    6: [(entity_factories.fireball_scroll, 25), (entity_factories.chain_mail, 15)],     # 6층부터: 파이어볼 스크롤, 방어구 추가
 }
 
 # 층별 몬스터 등장 가중치: {최소 층: [(몬스터, 가중치), ...]}

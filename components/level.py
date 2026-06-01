@@ -115,7 +115,7 @@ class Level(BaseComponent):
 
         LevelUpEventHandler에서 'b' 키 선택 시 호출됨 (Strength 선택).
         """
-        self.parent.fighter.power += amount
+        self.parent.fighter.base_power += amount
 
         self.engine.message_log.add_message("You feel stronger!")
 
@@ -126,7 +126,7 @@ class Level(BaseComponent):
 
         LevelUpEventHandler에서 'c' 키 선택 시 호출됨 (Agility 선택).
         """
-        self.parent.fighter.defense += amount
+        self.parent.fighter.base_defense += amount
 
         self.engine.message_log.add_message("Your movements are getting swifter!")
 
