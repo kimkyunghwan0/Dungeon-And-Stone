@@ -2,6 +2,7 @@ from components.ai import HostileEnemy
 from components import consumable
 from components.fighter import Fighter
 from components.inventory import Inventory
+from components.level import Level
 from entity import Actor, Item
 
 # 게임에 등장하는 엔티티 원본(템플릿)을 정의
@@ -16,6 +17,7 @@ player = Actor(
     ai_cls=HostileEnemy,
     fighter=Fighter(hp=30, defense=2, power=5),
     inventory=Inventory(capacity=26),
+    level=Level(level_up_base=200),
 )
 
 # 오크 — 'o' 기호, 녹색 계열. 80% 확률로 등장하는 일반 몬스터
@@ -26,6 +28,7 @@ orc = Actor(
     ai_cls=HostileEnemy,
     fighter=Fighter(hp=10, defense=0, power=3),
     inventory=Inventory(capacity=0),
+    level=Level(xp_given=35),
 )
 
 # 트롤 — 'T' 기호, 진한 녹색. 20% 확률로 등장하는 강한 몬스터
@@ -36,6 +39,7 @@ troll = Actor(
     ai_cls=HostileEnemy,
     fighter=Fighter(hp=16, defense=1, power=4),
     inventory=Inventory(capacity=0),
+    level=Level(xp_given=100),
 )
 
 # 혼란스크롤 - '10턴간 상대에게 혼란 상태이상 부여'

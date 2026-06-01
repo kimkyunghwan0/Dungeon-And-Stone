@@ -128,6 +128,18 @@ class WaitAction(Action):
         """
         pass
 
+class TakeStairsAction(Action):
+    def perform(self) -> None:
+        """
+        Take the stairs, if any exist at the entity's location.
+        """
+        if (self.entity.x, self.entity.y) == self.engine.game_map.downstairs_location:
+            self.engine.game_world.generate_floor()
+            self.engine.message_log.add_message(
+                "You descend the staircase.", color.descend
+            )
+        else:
+            raise exceptions.Impossible("There are no stairs here.")
 
 # 방향(dx, dy)이 있는 액션의 기본 클래스. 이동/공격 등 방향이 필요한 액션이 상속받음
 class ActionWithDirection(Action):

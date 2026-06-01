@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from components.consumable import Consumable
     from components.fighter import Fighter
     from components.inventory import Inventory
+    from components.level import Level
     from game_map import GameMap
 
 # Entity 하위 클래스도 spawn()에서 올바른 타입을 반환받기 위한 제네릭 타입 변수
@@ -142,6 +143,7 @@ class Actor(Entity):
         ai_cls: Type[BaseAI],
         fighter: Fighter,
         inventory: Inventory,
+        level: Level,
     ):
         """Actor를 초기화합니다.
 
@@ -174,6 +176,9 @@ class Actor(Entity):
 
         self.inventory = inventory
         self.inventory.parent = self
+
+        self.level = level
+        self.level.parent = self
 
     @property
     def is_alive(self) -> bool:

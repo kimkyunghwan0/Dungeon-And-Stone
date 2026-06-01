@@ -196,6 +196,8 @@ def generate_dungeon(
 
     rooms: List[RectangularRoom] = []  # 생성된 방 목록
 
+    center_of_last_room = (0, 0)
+
     for r in range(max_rooms):
         # 방의 너비와 높이를 최소/최대 사이에서 랜덤 결정
         room_width = random.randint(room_min_size, room_max_size)
@@ -221,10 +223,15 @@ def generate_dungeon(
             # 이후 방들 — 이전 방과 L자 복도로 연결
             for x, y in tunnel_between(rooms[-1].center, new_room.center):
                 dungeon.tiles[x, y] = tile_types.floor
+            center_of_last_room = new_room.center
 
         # 방 안에 몬스터, 아이템 배치
         place_entities(new_room, dungeon, max_monsters_per_room, max_items_per_room)
 
+        dungeon.tiles[center_of_last_room] = tile_types.down_stairs
+        dungeon.downstairs_location = center_of_last_room
+
+        # Finally, append the new room to the list.
         rooms.append(new_room)
 
     return dungeon

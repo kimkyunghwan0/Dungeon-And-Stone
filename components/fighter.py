@@ -91,6 +91,9 @@ class Fighter(BaseComponent):
 
         self.engine.message_log.add_message(death_message, death_message_color)
 
+        # 플레이어가 적을 처치시 경험치 획득
+        self.engine.player.level.add_xp(self.parent.level.xp_given)
+
     def heal(self, amount: int) -> int:
         """HP를 amount만큼 회복하고, 실제로 회복된 양을 반환합니다.
 
