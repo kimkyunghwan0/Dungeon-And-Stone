@@ -87,15 +87,34 @@
          - ConfusedEnemy AI : 혼란 상태 행동 처리 + 원래 AI 복원
          - SingleRangedAttackHandler / AreaRangedAttackHandler : 타겟 선택 커서 UI
          - MainMenu (setup_game.py) : 배경 이미지 기반 타이틀 화면 구현
-         - 인게임 메시지 전면 영어화
+
+  [완료] 10장 — 세이브 / 로드
+         - lzma + pickle로 Engine 전체를 직렬화해 savegame.sav에 저장
+         - Engine.save_as() : 현재 게임 상태를 파일로 저장
+         - setup_game.load_game() : 세이브 파일에서 Engine 복원
+         - MainMenu : [C] 이어하기 / [N] 새 게임 / [Q] 종료 선택 구현
+         - 게임오버 및 정상 종료 시 세이브 파일 자동 처리
+
+  [완료] 11장 — 다층 던전 & 레벨업 시스템
+         - TakeStairsAction : '>' 키로 내려가기 계단 이동
+         - GameWorld 클래스 : 던전 설정을 보유하고 층마다 새 GameMap 생성
+         - generate_floor() : 층 번호를 올리고 새 던전을 생성해 엔진에 교체
+         - Level 컴포넌트 : XP 획득 → 레벨업 판단 → 능력치 선택 흐름 처리
+         - LevelUpEventHandler : 레벨업 시 최대 HP / 공격력 / 방어력 중 선택
+         - render_dungeon_level() : 화면에 현재 층 번호 표시
+
+  [완료] 12장 — 층별 난이도 스케일링
+         - max_monsters_by_floor / max_items_by_floor : 층별 최대 등장 수 테이블
+         - enemy_chances / item_chances : 층별 등장 가중치 딕셔너리
+         - get_max_value_for_floor() : 현재 층에 해당하는 최댓값 조회
+         - get_entities_at_random() : 가중치 기반 무작위 엔티티 선택
+         - 층이 깊어질수록 트롤 비중 증가, 스크롤 등 고급 아이템 추가 등장
 
 ----------------------------------------------------
 
-  [ 예정 ] 10장 이후 — 추가 계획
-         - 세이브 / 로드 기능
-         - 경험치 & 레벨업 시스템
+  [ 예정 ] 13장 이후 — 추가 계획
+         - 장비 시스템 (무기, 방어구 착용)
          - 종족 선택 화면 (인간, 드워프, 바바리안, 수인, 엘프)
-         - 던전 층 이동 (계단)
          - 보스 몬스터
          - 성장 시스템 (정수, 명성)
 
@@ -103,23 +122,24 @@
 
 [ 현재 파일 구조 ]
   main.py               — 진입점. 게임 설정 및 메인 루프
-  setup_game.py         — 새 게임 초기화, MainMenu 타이틀 화면
-  engine.py             — 게임 핵심 루프 (이벤트→행동→FOV→렌더링)
+  setup_game.py         — 새 게임 초기화, 세이브 로드, MainMenu 타이틀 화면
+  engine.py             — 게임 핵심 루프 (이벤트→행동→FOV→렌더링) + 세이브
   entity.py             — 엔티티 기본 클래스 (Actor, Item)
   entity_factories.py   — 플레이어/몬스터/아이템 엔티티 템플릿 정의
-  game_map.py           — 맵 타일, 엔티티, 시야 관리
+  game_map.py           — 맵 타일·엔티티·시야 관리 (GameMap) + 층 진행 (GameWorld)
   input_handlers.py     — 키 입력 → 액션 변환, 각종 UI 핸들러
-  actions.py            — 액션 클래스 계층 (이동, 공격, 줍기, 버리기 등)
-  procgen.py            — 던전 랜덤 생성 알고리즘
-  tile_types.py         — 타일 데이터 정의 (floor, wall, SHROUD)
+  actions.py            — 액션 클래스 계층 (이동, 공격, 줍기, 버리기, 계단 등)
+  procgen.py            — 던전 랜덤 생성 + 층별 가중치 기반 엔티티 배치
+  tile_types.py         — 타일 데이터 정의 (floor, wall, down_stairs, SHROUD)
   color.py              — 게임 전체 색상 상수
   message_log.py        — 메시지 누적 저장 및 렌더링
-  render_functions.py   — HP 바, 엔티티 이름 표시 등 보조 렌더 함수
+  render_functions.py   — HP 바, 층 번호, 엔티티 이름 표시 등 보조 렌더 함수
   render_order.py       — 엔티티 렌더 우선순위 (CORPSE < ITEM < ACTOR)
   exceptions.py         — Impossible, QuitWithoutSaving 예외 정의
   components/
     base_component.py   — 컴포넌트 기반 클래스 (engine, gamemap 접근)
     fighter.py          — 전투 스탯 (hp, defense, power), 사망 처리
+    level.py            — 경험치 획득 → 레벨업 → 능력치 선택 흐름
     ai.py               — HostileEnemy, ConfusedEnemy AI
     inventory.py        — 인벤토리 (아이템 목록, 줍기/버리기)
     consumable.py       — 소비 아이템 효과 (포션, 번개/파이어볼/혼란 스크롤)
