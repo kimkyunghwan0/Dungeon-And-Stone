@@ -1,3 +1,4 @@
+# 절차적 던전 생성(방 배치, 복도 연결, 몬스터·아이템 배치)을 담당합니다.
 from __future__ import annotations
 
 import random

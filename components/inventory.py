@@ -1,3 +1,4 @@
+# 엔티티의 인벤토리(아이템 목록 관리, 줍기·버리기)를 담당합니다.
 from __future__ import annotations
 
 from typing import List, TYPE_CHECKING

@@ -1,3 +1,4 @@
+# 엔티티의 전투 스탯(HP, 공격력, 방어력)과 사망 처리를 담당합니다.
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

@@ -1,3 +1,4 @@
+# 키보드·마우스 입력을 처리하고 게임 상태(일반 플레이, 인벤토리, 레벨업 등)를 전환합니다.
 from __future__ import annotations
 
 import os
@@ -195,8 +196,13 @@ class AskUserEventHandler(EventHandler):
         """
         return MainGameEventHandler(self.engine)
 
-# 캐릭터 창
+# 캐릭터 정보 창 — 'c' 키로 열고 어떤 키나 눌러도 닫힘
 class CharacterScreenEventHandler(AskUserEventHandler):
+    """현재 레벨, 경험치, 다음 레벨까지 필요한 경험치, 공격력·방어력을 표시하는 화면.
+
+    플레이어 위치에 따라 창이 왼쪽 또는 오른쪽에 열려 캐릭터를 가리지 않음.
+    """
+
     TITLE = "Character Information"
 
     def on_render(self, console: tcod.Console) -> None:
@@ -241,8 +247,19 @@ class CharacterScreenEventHandler(AskUserEventHandler):
             x=x + 1, y=y + 5, string=f"Defense: {self.engine.player.fighter.defense}"
         )
 
-# 레벨업
+# 레벨업 선택 창 — requires_level_up이 True가 되면 EventHandler.handle_events()가 자동으로 전환
+# 능력치를 선택하기 전까지 마우스 클릭으로 닫을 수 없어 반드시 골라야 함
 class LevelUpEventHandler(AskUserEventHandler):
+    """레벨업 시 능력치 선택을 강제하는 이벤트 핸들러.
+
+    선택지:
+      a: Constitution — 최대 HP +20
+      b: Strength     — 공격력 +1
+      c: Agility      — 방어력 +1
+
+    마우스 클릭(ev_mousebuttondown)을 무시해 키 입력으로만 능력치를 고를 수 있음.
+    """
+
     TITLE = "Level Up"
 
     def on_render(self, console: tcod.Console) -> None:
@@ -284,6 +301,14 @@ class LevelUpEventHandler(AskUserEventHandler):
         )
 
     def ev_keydown(self, event: tcod.event.KeyDown) -> Optional[ActionOrHandler]:
+        """a/b/c 키로 능력치를 선택합니다.
+
+        동작 흐름:
+        1. 눌린 키를 0~2 인덱스로 변환 (K_a=0, K_b=1, K_c=2)
+        2. 0=체력(increase_max_hp) / 1=공격력(increase_power) / 2=방어력(increase_defense) 호출
+        3. 유효하지 않은 키면 "Invalid entry" 메시지 출력 후 창을 그대로 유지
+        4. 유효한 선택이면 부모 클래스의 ev_keydown을 통해 MainGameEventHandler로 복귀
+        """
         player = self.engine.player
         key = event.sym
         index = key - tcod.event.K_a
@@ -305,9 +330,7 @@ class LevelUpEventHandler(AskUserEventHandler):
     def ev_mousebuttondown(
         self, event: tcod.event.MouseButtonDown
     ) -> Optional[ActionOrHandler]:
-        """
-        Don't allow the player to click to exit the menu, like normal.
-        """
+        """마우스 클릭을 무시합니다. 키 입력으로만 능력치를 선택하도록 강제합니다."""
         return None
         
 class InventoryEventHandler(AskUserEventHandler):

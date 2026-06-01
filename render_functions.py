@@ -1,3 +1,4 @@
+# HP 바, 던전 층 번호, 마우스 위치 엔티티 이름 등 UI 요소를 렌더링합니다.
 from __future__ import annotations
 
 from typing import Tuple, TYPE_CHECKING
@@ -67,8 +68,13 @@ def render_bar(
 def render_dungeon_level(
     console: Console, dungeon_level: int, location: Tuple[int, int]
 ) -> None:
-    """
-    Render the level the player is currently on, at the given location.
+    """현재 던전 층 번호를 화면의 지정된 위치에 출력합니다.
+
+    동작 흐름:
+    - location 좌표에 "Dungeon level: {n}" 형식으로 텍스트 출력
+    - engine.render()에서 매 프레임 호출되어 현재 층 정보를 항상 표시
+
+    game_world.current_floor 값을 받아 표시하므로 층이 바뀌면 자동 갱신됨.
     """
     x, y = location
 

@@ -1,3 +1,4 @@
+# 모든 컴포넌트(Fighter, AI, Inventory 등)의 공통 기본 클래스를 정의합니다.
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

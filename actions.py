@@ -1,3 +1,4 @@
+# 플레이어와 몬스터의 행동(이동, 공격, 아이템 사용 등)을 정의합니다.
 from __future__ import annotations
 
 from typing import Optional, Tuple, TYPE_CHECKING
@@ -130,8 +131,14 @@ class WaitAction(Action):
 
 class TakeStairsAction(Action):
     def perform(self) -> None:
-        """
-        Take the stairs, if any exist at the entity's location.
+        """계단을 내려갑니다. 플레이어가 계단 위에 있을 때만 동작합니다.
+
+        동작 흐름:
+        1. 플레이어 좌표와 game_map.downstairs_location 비교
+        2. 일치하면 game_world.generate_floor()로 새 층을 생성하고 메시지 출력
+        3. 계단 위가 아니면 Impossible 예외 발생
+
+        Shift+Period(>)로 입력받으며, MainGameEventHandler.ev_keydown()에서 호출됨.
         """
         if (self.entity.x, self.entity.y) == self.engine.game_map.downstairs_location:
             self.engine.game_world.generate_floor()

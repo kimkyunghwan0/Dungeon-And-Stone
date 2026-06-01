@@ -1,3 +1,4 @@
+# 몬스터 AI 동작(플레이어 추적·공격, 혼란 상태 등)을 정의합니다.
 from __future__ import annotations
 
 from typing import List, Optional, Tuple, TYPE_CHECKING

@@ -1,12 +1,11 @@
+# 게임에 등장하는 모든 엔티티(플레이어, 몬스터, 아이템)의 원본 템플릿을 정의합니다.
+# 실제 사용 시 spawn()으로 복사본을 생성하므로 이 원본은 변경되지 않습니다.
 from components.ai import HostileEnemy
 from components import consumable
 from components.fighter import Fighter
 from components.inventory import Inventory
 from components.level import Level
 from entity import Actor, Item
-
-# 게임에 등장하는 엔티티 원본(템플릿)을 정의
-# 실제 사용 시 spawn()으로 복사본을 생성하므로 이 원본은 변경되지 않음
 
 # 플레이어 — '@' 기호, 흰색 / HP:30, 방어:2, 공격:5
 # ai_cls=HostileEnemy 이지만 플레이어는 키보드로 조작하므로 AI가 실제로 실행되지 않음

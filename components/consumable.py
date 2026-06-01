@@ -1,3 +1,4 @@
+# 소비 아이템의 효과(회복 포션, 번개·파이어볼·혼란 스크롤 등)를 정의합니다.
 from __future__ import annotations
 
 from typing import Optional, TYPE_CHECKING

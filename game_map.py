@@ -1,3 +1,4 @@
+# 던전 맵(타일, 엔티티, 시야)과 던전 전체 진행(GameWorld)을 관리합니다.
 from __future__ import annotations
 
 from typing import Iterable, Iterator, Optional, TYPE_CHECKING
@@ -155,10 +156,10 @@ class GameMap:
                     x=entity.x, y=entity.y, text=entity.char, fg=entity.color
                 )
                 
+# GameMap이 단일 층의 상태라면 GameWorld는 던전 전체 진행(설정·층 관리)을 담당
+# 계단 이동 시 generate_floor()를 호출해 새 GameMap을 생성하고 엔진에 교체
 class GameWorld:
-    """
-    Holds the settings for the GameMap, and generates new maps when moving down the stairs.
-    """
+    """던전 설정을 보유하고 계단 이동 시 새 층을 생성하는 클래스."""
 
     def __init__(
         self,
@@ -189,6 +190,15 @@ class GameWorld:
         self.current_floor = current_floor
 
     def generate_floor(self) -> None:
+        """새로운 던전 층을 생성하고 엔진의 game_map을 교체합니다.
+
+        동작 흐름:
+        1. current_floor를 1 증가
+        2. generate_dungeon()으로 새 GameMap 생성 (저장된 던전 설정 재사용)
+        3. engine.game_map을 새로 생성된 맵으로 교체 (이전 층의 엔티티는 버려짐)
+
+        TakeStairsAction.perform()에서 플레이어가 계단을 내려갈 때 호출됨.
+        """
         from procgen import generate_dungeon
 
         self.current_floor += 1

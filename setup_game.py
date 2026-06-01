@@ -1,4 +1,4 @@
-"""Handle the loading and initialization of game sessions."""
+# 새 게임 생성, 세이브 파일 로드, 메인 메뉴를 처리합니다.
 from __future__ import annotations
 
 import copy
@@ -21,7 +21,7 @@ background_image = tcod.image.load("menu_background.png")[:, :, :3]
 
 
 def new_game() -> Engine:
-    """Return a brand new game session as an Engine instance."""
+    """새 게임 세션을 Engine 인스턴스로 생성해 반환합니다."""
     # 맵 크기 설정 (화면보다 작게 — 나머지 공간은 UI용)
     map_width = 80
     map_height = 43
@@ -61,18 +61,19 @@ def new_game() -> Engine:
     return engine
 
 def load_game(filename: str) -> Engine:
-    """Load an Engine instance from a file."""
+    """저장 파일에서 Engine 인스턴스를 불러와 반환합니다."""
     with open(filename, "rb") as f:
         engine = pickle.loads(lzma.decompress(f.read()))
     assert isinstance(engine, Engine)
     return engine
 
 # 게임 시작 시에만 보임.
+# 게임 시작 화면 — 새 게임(N), 이어하기(C), 종료(Q)를 선택할 수 있음
 class MainMenu(input_handlers.BaseEventHandler):
-    """Handle the main menu rendering and input."""
+    """메인 메뉴 렌더링과 입력을 처리합니다."""
 
     def on_render(self, console: tcod.Console) -> None:
-        """Render the main menu on a background image."""
+        """배경 이미지 위에 메인 메뉴를 렌더링합니다."""
         console.draw_semigraphics(background_image, 0, 0)
 
         console.print(

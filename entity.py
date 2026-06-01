@@ -1,3 +1,4 @@
+# 게임 내 모든 객체(플레이어, 몬스터, 아이템)의 기반이 되는 Entity 클래스를 정의합니다.
 from __future__ import annotations
 
 import copy

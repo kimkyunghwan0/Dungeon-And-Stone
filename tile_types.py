@@ -1,3 +1,4 @@
+# 던전에서 사용하는 타일(바닥, 벽, 계단)의 그래픽과 속성을 정의합니다.
 from typing import Tuple
 
 import numpy as np  # type: ignore

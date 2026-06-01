@@ -1,3 +1,4 @@
+# 엔티티를 화면에 그리는 순서(우선순위)를 정의합니다.
 from enum import auto, Enum
 
 # auto() == 자동으로 증가하는 정수값 유형

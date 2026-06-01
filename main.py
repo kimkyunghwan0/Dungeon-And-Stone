@@ -1,3 +1,4 @@
+# 게임 진입점입니다. tcod 창을 생성하고 메인 이벤트 루프를 실행합니다.
 import traceback
 
 import tcod

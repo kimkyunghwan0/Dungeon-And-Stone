@@ -1,3 +1,4 @@
+# 게임 내 메시지를 저장·관리하고 화면에 렌더링합니다.
 from typing import Iterable, List, Reversible, Tuple
 import textwrap
 

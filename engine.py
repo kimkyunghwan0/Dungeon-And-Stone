@@ -1,3 +1,4 @@
+# 게임의 핵심 루프(이벤트 처리, FOV 갱신, 렌더링)를 담당합니다.
 from __future__ import annotations
 
 import lzma
@@ -31,7 +32,8 @@ class Engine:
         - message_log   : 전투 결과, 아이템 사용 등 게임 이벤트 메시지를 누적 저장
         - mouse_location: 마우스 커서가 가리키는 맵 타일 좌표 (엔티티 이름 표시에 사용)
         - player        : 플레이어 Actor 엔티티
-        - game_map은 이 __init__ 이후 main.py에서 engine.game_map = ... 으로 직접 할당됨
+        - game_map   : 이 __init__ 이후 main.py에서 engine.game_map = ... 으로 직접 할당됨
+        - game_world : 던전 층 설정과 generate_floor()를 담당하는 객체. setup_game.py에서 할당됨
         """
         self.message_log = MessageLog()
         self.mouse_location = (0, 0)
@@ -99,6 +101,7 @@ class Engine:
             total_width=20,
         )
 
+        # 화면 왼쪽 (y=47)에 현재 던전 층 번호 표시
         render_functions.render_dungeon_level(
             console=console,
             dungeon_level=self.game_world.current_floor,
@@ -111,7 +114,7 @@ class Engine:
         )
 
     def save_as(self, filename: str) -> None:
-        """Save this Engine instance as a compressed file."""
+        """현재 Engine 인스턴스를 lzma 압축 파일로 저장합니다."""
         save_data = lzma.compress(pickle.dumps(self))
         with open(filename, "wb") as f:
             f.write(save_data)
