@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import random
-from typing import Iterator, List, Tuple, TYPE_CHECKING
+from typing import Dict, Iterator, List, Tuple, TYPE_CHECKING
 
 import tcod
 
@@ -12,6 +12,97 @@ import tile_types
 
 if TYPE_CHECKING:
     from engine import Engine
+    from entity import Entity
+
+# 층별 최대 아이템 수: (최소 층, 최대 아이템 수) — 해당 층 이상부터 적용
+max_items_by_floor = [
+    (1, 1),  # 1층부터: 방당 최대 1개
+    (4, 2),  # 4층부터: 방당 최대 2개
+]
+
+# 층별 최대 몬스터 수: (최소 층, 최대 몬스터 수)
+max_monsters_by_floor = [
+    (1, 2),  # 1층부터: 방당 최대 2마리
+    (4, 3),  # 4층부터: 방당 최대 3마리
+    (6, 5),  # 6층부터: 방당 최대 5마리
+]
+
+# 층별 아이템 등장 가중치: {최소 층: [(아이템, 가중치), ...]}
+# 해당 층 이상부터 그 아이템이 등장 후보에 추가됨
+item_chances: Dict[int, List[Tuple[Entity, int]]] = {
+    0: [(entity_factories.health_potion, 35)],       # 모든 층: 회복 포션
+    2: [(entity_factories.confusion_scroll, 10)],    # 2층부터: 혼란 스크롤 추가
+    4: [(entity_factories.lightning_scroll, 25)],    # 4층부터: 번개 스크롤 추가
+    6: [(entity_factories.fireball_scroll, 25)],     # 6층부터: 파이어볼 스크롤 추가
+}
+
+# 층별 몬스터 등장 가중치: {최소 층: [(몬스터, 가중치), ...]}
+# 층이 깊어질수록 트롤 비중이 높아짐
+enemy_chances: Dict[int, List[Tuple[Entity, int]]] = {
+    0: [(entity_factories.orc, 80)],    # 모든 층: 오크
+    3: [(entity_factories.troll, 15)],  # 3층부터: 트롤 15%
+    5: [(entity_factories.troll, 30)],  # 5층부터: 트롤 30%
+    7: [(entity_factories.troll, 60)],  # 7층부터: 트롤 60%
+}
+
+def get_max_value_for_floor(
+    max_value_by_floor: List[Tuple[int, int]], floor: int
+) -> int:
+    """현재 층에 해당하는 최댓값을 반환합니다.
+
+    동작 흐름:
+    - max_value_by_floor를 순서대로 순회하며 floor_minimum ≤ floor인 값을 current_value에 갱신
+    - floor_minimum > floor 이면 중단 (이후 항목은 아직 해당 층 미달)
+    - 예) floor=3, [(1,2),(4,3),(6,5)] → floor_minimum 4 > 3에서 중단, 2 반환
+
+    place_entities()에서 max_monsters_by_floor / max_items_by_floor에 대해 호출됨.
+    """
+    current_value = 0
+
+    for floor_minimum, value in max_value_by_floor:
+        if floor_minimum > floor:
+            break
+        else:
+            current_value = value
+
+    return current_value
+
+def get_entities_at_random(
+    weighted_chances_by_floor: Dict[int, List[Tuple[Entity, int]]],
+    number_of_entities: int,
+    floor: int,
+) -> List[Entity]:
+    """현재 층에 맞는 엔티티를 가중치 기반으로 무작위 선택해 반환합니다.
+
+    동작 흐름:
+    1. weighted_chances_by_floor를 순회해 key(최소 층) ≤ floor인 항목만 수집
+       → 현재 층에서 등장 가능한 후보와 가중치를 entity_weighted_chances에 저장
+       (층이 높아질수록 더 강한 몬스터·유용한 아이템이 후보에 추가됨)
+    2. random.choices()로 가중치 비례 무작위 추출 (k=number_of_entities)
+    3. 선택된 엔티티 리스트 반환
+
+    place_entities()에서 enemy_chances / item_chances에 대해 호출됨.
+    """
+    entity_weighted_chances = {}
+
+    for key, values in weighted_chances_by_floor.items():
+        if key > floor:
+            break
+        else:
+            for value in values:
+                entity = value[0]
+                weighted_chance = value[1]
+
+                entity_weighted_chances[entity] = weighted_chance
+
+    entities = list(entity_weighted_chances.keys())
+    entity_weighted_chance_values = list(entity_weighted_chances.values())
+
+    chosen_entities = random.choices(
+        entities, weights=entity_weighted_chance_values, k=number_of_entities
+    )
+
+    return chosen_entities
 
 # 핵심 원칙: "방을 파낼 때 벽을 남기기 위해 내부만 파낸다"
 # RectangularRoom = "벽 포함 박스" (x1,y1이 좌상단, x2,y2가 우하단)
@@ -73,57 +164,35 @@ class RectangularRoom:
         )
 
 
-def place_entities(
-    room: RectangularRoom, dungeon: GameMap, maximum_monsters: int, maximum_items: int
-) -> None:
-    """방 안에 랜덤으로 몬스터와 아이템을 배치합니다.
+def place_entities(room: RectangularRoom, dungeon: GameMap, floor_number: int,) -> None:
+    """방 안에 현재 층 기준으로 몬스터와 아이템을 무작위 배치합니다.
 
-    동작 흐름 (몬스터):
-    1. 0 ~ maximum_monsters 사이 랜덤 수만큼 몬스터 생성 시도
-    2. 방 내부(x1+1 ~ x2-1, y1+1 ~ y2-1) 임의 좌표 선택
-    3. 해당 좌표에 이미 엔티티가 없을 때만 배치
-    4. 80% 확률로 오크(약함), 20% 확률로 트롤(강함) 소환
-
-    동작 흐름 (아이템):
-    1. 0 ~ maximum_items 사이 랜덤 수만큼 아이템 생성 시도
-    2. 방 내부 임의 좌표 선택 (몬스터와 같은 방식)
-    3. 해당 좌표에 이미 엔티티가 없을 때만 배치
-    4. random.random()으로 아이템 종류 결정:
-       - < 0.7 (70%) : 회복 포션
-       - < 0.8 (10%) : 파이어볼 스크롤
-       - < 0.9 (10%) : 혼란 스크롤
-       - 나머지 (10%): 번개 스크롤
+    동작 흐름:
+    1. get_max_value_for_floor()로 현재 층에 맞는 최대 몬스터·아이템 수 결정
+    2. get_entities_at_random()으로 enemy_chances/item_chances 가중치 테이블에서
+       등장할 엔티티를 무작위 선택 (층이 높을수록 강한 적·다양한 아이템이 후보에 포함)
+    3. 방 내부 임의 좌표에 배치 (이미 엔티티가 있는 칸은 건너뜀)
     """
-    number_of_monsters = random.randint(0, maximum_monsters)
-    number_of_items = random.randint(0, maximum_items)
+    number_of_monsters = random.randint(
+        0, get_max_value_for_floor(max_monsters_by_floor, floor_number)
+    )
+    number_of_items = random.randint(
+        0, get_max_value_for_floor(max_items_by_floor, floor_number)
+    )
 
-    for i in range(number_of_monsters):
-        # 방 내부 임의의 좌표 선택
+    monsters: List[Entity] = get_entities_at_random(
+        enemy_chances, number_of_monsters, floor_number
+    )
+    items: List[Entity] = get_entities_at_random(
+        item_chances, number_of_items, floor_number
+    )
+
+    for entity in monsters + items:
         x = random.randint(room.x1 + 1, room.x2 - 1)
         y = random.randint(room.y1 + 1, room.y2 - 1)
 
-        # 해당 좌표에 이미 엔티티가 없을 때만 배치
         if not any(entity.x == x and entity.y == y for entity in dungeon.entities):
-            if random.random() < 0.8:  # 80% 확률로 오크, 20% 확률로 트롤
-                entity_factories.orc.spawn(dungeon, x, y)
-            else:
-                entity_factories.troll.spawn(dungeon, x, y)
-
-    for i in range(number_of_items):
-        x = random.randint(room.x1 + 1, room.x2 - 1)
-        y = random.randint(room.y1 + 1, room.y2 - 1)
-
-        if not any(entity.x == x and entity.y == y for entity in dungeon.entities):
-            item_chance = random.random()
-
-            if item_chance < 0.7:
-                entity_factories.health_potion.spawn(dungeon, x, y)
-            elif item_chance < 0.8:
-                entity_factories.fireball_scroll.spawn(dungeon, x, y)
-            elif item_chance < 0.9:
-                entity_factories.confusion_scroll.spawn(dungeon, x, y)
-            else:
-                entity_factories.lightning_scroll.spawn(dungeon, x, y)
+           entity.spawn(dungeon, x, y)
 
 
 def tunnel_between(
@@ -165,8 +234,6 @@ def generate_dungeon(
     room_max_size: int,
     map_width: int,
     map_height: int,
-    max_monsters_per_room: int,
-    max_items_per_room: int,
     engine: Engine,
 ) -> GameMap:
     """던전 맵 전체를 생성하고 반환합니다.
@@ -176,9 +243,7 @@ def generate_dungeon(
     - room_min_size        : 방 하나의 최소 크기
     - room_max_size        : 방 하나의 최대 크기
     - map_width, map_height: 맵 크기
-    - max_monsters_per_room: 방당 최대 몬스터 수
-    - max_items_per_room   : 방당 최대 아이템 수
-    - engine               : 게임 엔진 (플레이어 엔티티 접근에 사용)
+    - engine               : 게임 엔진 (플레이어 엔티티·현재 층 정보 접근에 사용)
 
     동작 흐름:
     1. GameMap 생성 (전체가 벽으로 초기화된 상태, 플레이어만 포함)
@@ -189,7 +254,7 @@ def generate_dungeon(
        d. 겹치지 않으면 inner 영역을 바닥 타일로 파냄
        e. 첫 번째 방: 플레이어를 방 중심에 배치
           이후 방들: 이전 방과 L자 복도(tunnel_between)로 연결
-       f. 방 안에 몬스터와 아이템 배치 (place_entities)
+       f. place_entities()로 현재 층 기준 몬스터·아이템 배치
     3. 완성된 GameMap 반환
     """
     player = engine.player
@@ -227,12 +292,12 @@ def generate_dungeon(
             center_of_last_room = new_room.center
 
         # 방 안에 몬스터, 아이템 배치
-        place_entities(new_room, dungeon, max_monsters_per_room, max_items_per_room)
+        place_entities(new_room, dungeon, engine.game_world.current_floor)
 
         dungeon.tiles[center_of_last_room] = tile_types.down_stairs
         dungeon.downstairs_location = center_of_last_room
 
-        # Finally, append the new room to the list.
+        # 생성된 방 목록에 추가
         rooms.append(new_room)
 
     return dungeon

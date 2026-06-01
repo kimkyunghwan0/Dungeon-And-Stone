@@ -9,7 +9,7 @@ import input_handlers
 import setup_game
 
 def save_game(handler: input_handlers.BaseEventHandler, filename: str) -> None:
-    """If the current event handler has an active Engine then save it."""
+    """현재 이벤트 핸들러에 활성 Engine이 있으면 게임을 저장합니다."""
     if isinstance(handler, input_handlers.EventHandler):
         handler.engine.save_as(filename)
         print("Game saved.")

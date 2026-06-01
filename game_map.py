@@ -170,10 +170,20 @@ class GameWorld:
         max_rooms: int,
         room_min_size: int,
         room_max_size: int,
-        max_monsters_per_room: int,
-        max_items_per_room: int,
         current_floor: int = 0
     ):
+        """GameWorld를 초기화합니다.
+
+        매개변수:
+        - engine                        : 게임 엔진 참조
+        - map_width, map_height         : 각 층 맵의 크기
+        - max_rooms                     : 층당 최대 방의 수
+        - room_min_size, room_max_size  : 방 하나의 최소·최대 크기
+        - current_floor                 : 현재 층 번호 (0으로 시작, generate_floor() 호출마다 1 증가)
+
+        파트 12부터 max_monsters_per_room / max_items_per_room은 제거되었으며,
+        층별 등장 수는 procgen의 max_monsters_by_floor / max_items_by_floor 테이블로 결정됨.
+        """
         self.engine = engine
 
         self.map_width = map_width
@@ -183,9 +193,6 @@ class GameWorld:
 
         self.room_min_size = room_min_size
         self.room_max_size = room_max_size
-
-        self.max_monsters_per_room = max_monsters_per_room
-        self.max_items_per_room = max_items_per_room
 
         self.current_floor = current_floor
 
@@ -209,7 +216,5 @@ class GameWorld:
             room_max_size=self.room_max_size,
             map_width=self.map_width,
             map_height=self.map_height,
-            max_monsters_per_room=self.max_monsters_per_room,
-            max_items_per_room=self.max_items_per_room,
             engine=self.engine,
         )

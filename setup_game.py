@@ -16,7 +16,7 @@ import entity_factories
 from game_map import GameWorld
 import input_handlers
 
-# Load the background image and remove the alpha channel.
+# 배경 이미지를 로드한 후 투명도(알파) 채널을 제거합니다.
 background_image = tcod.image.load("menu_background.png")[:, :, :3]
 
 
@@ -31,9 +31,6 @@ def new_game() -> Engine:
     room_min_size = 6       # 방 하나의 최소 크기
     max_rooms = 30          # 던전 내 최대 방 개수
 
-    max_monsters_per_room = 2  # 방 하나에 등장할 수 있는 최대 몬스터 수
-    max_items_per_room  = 2  # 방 하나에 존재할 수 있는 최대 아이템 수
-
     # entity_factories의 player 원본을 복사해 독립적인 플레이어 인스턴스 생성
     player = copy.deepcopy(entity_factories.player)
 
@@ -47,8 +44,6 @@ def new_game() -> Engine:
         room_max_size=room_max_size,
         map_width=map_width,
         map_height=map_height,
-        max_monsters_per_room=max_monsters_per_room,
-        max_items_per_room=max_items_per_room,
     )
     
     engine.game_world.generate_floor()
@@ -118,7 +113,7 @@ class MainMenu(input_handlers.BaseEventHandler):
             except FileNotFoundError:
                 return input_handlers.PopupMessage(self, "No saved game to load.")
             except Exception as exc:
-                traceback.print_exc()  # Print to stderr.
+                traceback.print_exc()  # 오류 내용을 stderr에 출력
                 return input_handlers.PopupMessage(self, f"Failed to load save:\n{exc}")
         # N --> 새 게임
         elif event.sym == tcod.event.K_n:

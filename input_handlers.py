@@ -92,14 +92,14 @@ class BaseEventHandler(tcod.event.EventDispatch[ActionOrHandler]):
         raise SystemExit()
 
 class PopupMessage(BaseEventHandler):
-    """Display a popup text window."""
+    """팝업 텍스트 창을 표시합니다."""
 
     def __init__(self, parent_handler: BaseEventHandler, text: str):
         self.parent = parent_handler
         self.text = text
 
     def on_render(self, console: tcod.Console) -> None:
-        """Render the parent and dim the result, then print the message on top."""
+        """부모 핸들러를 먼저 렌더링한 뒤 화면을 어둡게 하고 메시지를 출력합니다."""
         self.parent.on_render(console)
         console.tiles_rgb["fg"] //= 8
         console.tiles_rgb["bg"] //= 8
@@ -114,7 +114,7 @@ class PopupMessage(BaseEventHandler):
         )
 
     def ev_keydown(self, event: tcod.event.KeyDown) -> Optional[BaseEventHandler]:
-        """Any key returns to the parent handler."""
+        """아무 키나 누르면 부모 핸들러로 돌아갑니다."""
         return self.parent
     
 # ── 이벤트 핸들러 기본 클래스 ─────────────────────────────────────────────
@@ -125,18 +125,18 @@ class EventHandler(BaseEventHandler):
         self.engine = engine  # 엔진 참조 (플레이어, 맵 등에 접근하기 위해)
 
     def handle_events(self, event: tcod.event.Event) -> BaseEventHandler:
-        """Handle events for input handlers with an engine."""
+        """엔진을 가진 이벤트 핸들러의 이벤트를 처리합니다."""
         action_or_state = self.dispatch(event)
         if isinstance(action_or_state, BaseEventHandler):
             return action_or_state
         if self.handle_action(action_or_state):
-            # A valid action was performed.
+            # 유효한 액션이 실행됨
             if not self.engine.player.is_alive:
-                # The player was killed sometime during or after the action.
+                # 액션 도중 또는 이후 플레이어가 사망한 경우
                 return GameOverEventHandler(self.engine)
             elif self.engine.player.level.requires_level_up:
                 return LevelUpEventHandler(self.engine)
-            return MainGameEventHandler(self.engine)  # Return to the main handler.
+            return MainGameEventHandler(self.engine)  # 일반 플레이 핸들러로 복귀
         return self
 
     def handle_action(self, action: Optional[Action]) -> bool:
@@ -583,10 +583,10 @@ class MainGameEventHandler(EventHandler):
 # 플레이어 사망 후 활성화. Esc 키로 종료만 가능하고 이동/공격 불가
 class GameOverEventHandler(EventHandler):
     def on_quit(self) -> None:
-        """Handle exiting out of a finished game."""
+        """게임오버 후 종료를 처리합니다."""
         if os.path.exists("savegame.sav"):
-            os.remove("savegame.sav")  # Deletes the active save file.
-        raise exceptions.QuitWithoutSaving()  # Avoid saving a finished game.
+            os.remove("savegame.sav")  # 세이브 파일 삭제 (게임오버 상태는 저장하지 않음)
+        raise exceptions.QuitWithoutSaving()  # 게임오버 상태로 저장되지 않도록 예외 발생
 
     def ev_quit(self, event: tcod.event.Quit) -> None:
         self.on_quit()
