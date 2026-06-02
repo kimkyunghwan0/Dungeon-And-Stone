@@ -16,18 +16,22 @@ from message_log import MessageLog
 import render_functions
 
 if TYPE_CHECKING:
+    from typing import Optional
     from entity import Actor
     from game_map import GameMap, GameWorld
+    from race_types import Race
 
 # 게임의 핵심 루프를 담당하는 클래스
 # 이벤트 처리 → 행동 수행 → FOV 갱신 → 화면 렌더링 순서로 동작
 class Engine:
     game_map: GameMap
     game_world: GameWorld
-    def __init__(self, player: Actor):
+    def __init__(self, player: Actor, race: Optional[Race] = None):
         """엔진을 초기화합니다.
 
         동작 흐름:
+        - race          : 선택된 종족. FOV 반경·회복 보너스 등 종족 특성에 사용.
+                          None이면 기본값(인간 스탯, 반경 8)으로 동작.
         - event_handler : 현재 게임 상태(일반 플레이/게임오버 등)에 맞는 핸들러를 교체하며 사용
         - message_log   : 전투 결과, 아이템 사용 등 게임 이벤트 메시지를 누적 저장
         - mouse_location: 마우스 커서가 가리키는 맵 타일 좌표 (엔티티 이름 표시에 사용)
@@ -35,6 +39,7 @@ class Engine:
         - game_map   : 이 __init__ 이후 main.py에서 engine.game_map = ... 으로 직접 할당됨
         - game_world : 던전 층 설정과 generate_floor()를 담당하는 객체. setup_game.py에서 할당됨
         """
+        self.race = race
         self.message_log = MessageLog()
         self.mouse_location = (0, 0)
         self.player = player
@@ -71,10 +76,13 @@ class Engine:
         visible  : 현재 이 순간 플레이어 눈에 보이는 타일 (밝게 표시)
         explored : 지금까지 한 번이라도 본 타일 (어둡게 표시, 시야 밖이어도 유지)
         """
+        # 엘프 종족이면 시야 반경 10, 나머지는 8
+        fov_radius = self.race.fov_radius if self.race else 8
+
         self.game_map.visible[:] = compute_fov(
             self.game_map.tiles["transparent"],  # 투명도 정보. 2D numpy 배열. 0이면 벽(불투명), 1이면 빈 공간(투명)
             (self.player.x, self.player.y),      # 시야 원점 (플레이어 위치)
-            radius=8,                            # 시야 반경
+            radius=fov_radius,                   # 종족별 시야 반경
         )
         self.game_map.explored |= self.game_map.visible  # 한 번 본 타일은 explored 상태 유지
 

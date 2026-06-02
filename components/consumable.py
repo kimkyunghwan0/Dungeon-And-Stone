@@ -195,7 +195,12 @@ class HealingConsumable(Consumable):
         4. 회복량이 0이면 (이미 최대 체력) Impossible 예외 발생 → 아이템 소비 안 함
         """
         consumer = action.entity
-        amount_recovered = consumer.fighter.heal(self.amount)
+
+        # 수인 종족 보너스 — race.heal_bonus만큼 추가 회복
+        race = getattr(self.engine, "race", None)
+        heal_bonus = race.heal_bonus if race else 0
+
+        amount_recovered = consumer.fighter.heal(self.amount + heal_bonus)
 
         if amount_recovered > 0:
             self.engine.message_log.add_message(

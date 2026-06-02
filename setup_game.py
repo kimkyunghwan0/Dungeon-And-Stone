@@ -15,13 +15,14 @@ from engine import Engine
 import entity_factories
 from game_map import GameWorld
 import input_handlers
+from race_types import Race
 
 # 배경 이미지를 로드한 후 투명도(알파) 채널을 제거합니다.
 background_image = tcod.image.load("menu_background.png")[:, :, :3]
 
 
-def new_game() -> Engine:
-    """새 게임 세션을 Engine 인스턴스로 생성해 반환합니다."""
+def new_game(race: Race) -> Engine:
+    """선택된 종족으로 새 게임 세션을 Engine 인스턴스로 생성해 반환합니다."""
     # 맵 크기 설정 (화면보다 작게 — 나머지 공간은 UI용)
     map_width = 80
     map_height = 43
@@ -34,7 +35,14 @@ def new_game() -> Engine:
     # entity_factories의 player 원본을 복사해 독립적인 플레이어 인스턴스 생성
     player = copy.deepcopy(entity_factories.player)
 
-    engine = Engine(player=player)
+    # 종족 스탯 보너스를 플레이어에 적용
+    player.fighter.max_hp += race.hp_bonus
+    player.fighter._hp = max(1, player.fighter.max_hp)  # 최소 1 HP 보장
+    player.fighter.base_power += race.power_bonus
+    player.fighter.base_defense += race.defense_bonus
+    player.level.level_up_base = race.level_up_base
+
+    engine = Engine(player=player, race=race)
 
     # 던전 맵 생성 (방 배치, 복도 연결, 몬스터 배치 포함)
     engine.game_world = GameWorld(
@@ -131,8 +139,8 @@ class MainMenu(input_handlers.BaseEventHandler):
             except Exception as exc:
                 traceback.print_exc()  # 오류 내용을 stderr에 출력
                 return input_handlers.PopupMessage(self, f"Failed to load save:\n{exc}")
-        # N --> 새 게임
+        # N --> 종족 선택 화면으로 이동 (선택 완료 후 new_game() 호출)
         elif event.sym == tcod.event.K_n:
-            return input_handlers.MainGameEventHandler(new_game())
+            return input_handlers.RaceSelectEventHandler(self)
 
         return None

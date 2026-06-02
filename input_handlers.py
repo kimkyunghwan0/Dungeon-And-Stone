@@ -17,6 +17,7 @@ from actions import (
 
 import color
 import exceptions
+from race_types import RACES
 
 if TYPE_CHECKING:
     from engine import Engine
@@ -116,7 +117,73 @@ class PopupMessage(BaseEventHandler):
     def ev_keydown(self, event: tcod.event.KeyDown) -> Optional[BaseEventHandler]:
         """아무 키나 누르면 부모 핸들러로 돌아갑니다."""
         return self.parent
-    
+
+
+# ── 종족 선택 화면 ────────────────────────────────────────────────────────
+# 새 게임 시작 시 MainMenu에서 전환됨. 종족 선택 후 new_game(race)을 호출해 게임 시작
+class RaceSelectEventHandler(BaseEventHandler):
+    """종족 선택 화면을 렌더링하고 1~5 키 입력을 처리하는 핸들러."""
+
+    def __init__(self, parent: BaseEventHandler):
+        """매개변수:
+        - parent : 이전 화면 핸들러 (메인 메뉴). on_render()에서 배경으로 사용하고
+                   ESC 입력 시 복귀 대상으로 사용.
+        """
+        self.parent = parent
+
+    def on_render(self, console: tcod.Console) -> None:
+        """메인 메뉴 배경 위에 종족 선택 창을 그립니다."""
+        self.parent.on_render(console)  # 메인 메뉴 배경 먼저 렌더링
+
+        frame_w = 52
+        frame_h = len(RACES) + 5   # 종족 수 + 제목·여백·안내 줄
+        x = (console.width - frame_w) // 2
+        y = (console.height - frame_h) // 2
+
+        console.draw_frame(
+            x=x, y=y,
+            width=frame_w, height=frame_h,
+            title="종족 선택",
+            clear=True,
+            fg=(255, 255, 255),
+            bg=(0, 0, 0),
+        )
+
+        # 각 종족을 번호와 함께 한 줄씩 출력
+        for i, race in enumerate(RACES):
+            console.print(
+                x=x + 1, y=y + 1 + i,
+                string=f"{i + 1}) {race.name:<8} {race.description}",
+            )
+
+        # 하단 안내 줄
+        console.print(
+            x=x + 1, y=y + frame_h - 2,
+            string="[1~5] 선택   [ESC] 돌아가기",
+            fg=color.menu_text,
+        )
+
+    def ev_keydown(self, event: tcod.event.KeyDown) -> Optional[BaseEventHandler]:
+        """1~5 키로 종족을 선택합니다.
+
+        동작 흐름:
+        - K_1~K_5 → 해당 종족으로 new_game() 호출 후 MainGameEventHandler 반환
+        - ESC → 부모(메인 메뉴)로 복귀
+        - 그 외 키 → 무시
+        """
+        key = event.sym
+        index = key - tcod.event.K_1   # K_1=0, K_2=1, ... K_5=4
+
+        if 0 <= index < len(RACES):
+            from setup_game import new_game  # 순환 임포트 방지용 지연 임포트
+            return MainGameEventHandler(new_game(RACES[index]))
+
+        if key == tcod.event.K_ESCAPE:
+            return self.parent
+
+        return None
+
+
 # ── 이벤트 핸들러 기본 클래스 ─────────────────────────────────────────────
 # 게임 상태(일반 플레이, 게임오버 등)에 따라 다른 핸들러를 사용
 # Engine.event_handler에 현재 상태에 맞는 핸들러 인스턴스를 교체해서 상태 전환
