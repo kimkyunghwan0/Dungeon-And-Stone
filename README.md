@@ -110,10 +110,19 @@
          - get_entities_at_random() : 가중치 기반 무작위 엔티티 선택
          - 층이 깊어질수록 트롤 비중 증가, 스크롤 등 고급 아이템 추가 등장
 
+  [완료] 13장 — 장비 시스템
+         - EquipmentType (equipment_types.py) : 무기·방어구 슬롯 열거형 정의
+         - Equippable 컴포넌트 : 장비 아이템의 슬롯 종류·스탯 보너스 보유
+           (Dagger +2공, Sword +4공, LeatherArmor +1방, ChainMail +3방)
+         - Equipment 컴포넌트 : 슬롯 관리 + 보너스 합산 → Fighter에 반영
+         - EquipAction : 인벤토리에서 장비 아이템 선택 시 장착/해제 전환
+         - 인벤토리 UI에 장착 여부 표시 (아이템 이름 뒤 "(E)")
+         - Fighter.defense / power가 base + 장비 보너스로 계산되도록 변경
+         - 새 게임 시작 시 단검·가죽 갑옷을 시작 장비로 자동 지급
+
 ----------------------------------------------------
 
-  [ 예정 ] 13장 이후 — 추가 계획
-         - 장비 시스템 (무기, 방어구 착용)
+  [ 예정 ] 14장 이후 — 추가 계획
          - 종족 선택 화면 (인간, 드워프, 바바리안, 수인, 엘프)
          - 보스 몬스터
          - 성장 시스템 (정수, 명성)
@@ -125,10 +134,11 @@
   setup_game.py         — 새 게임 초기화, 세이브 로드, MainMenu 타이틀 화면
   engine.py             — 게임 핵심 루프 (이벤트→행동→FOV→렌더링) + 세이브
   entity.py             — 엔티티 기본 클래스 (Actor, Item)
-  entity_factories.py   — 플레이어/몬스터/아이템 엔티티 템플릿 정의
+  entity_factories.py   — 플레이어/몬스터/아이템/장비 엔티티 템플릿 정의
+  equipment_types.py    — 장비 슬롯 종류 열거형 (WEAPON, ARMOR)
   game_map.py           — 맵 타일·엔티티·시야 관리 (GameMap) + 층 진행 (GameWorld)
   input_handlers.py     — 키 입력 → 액션 변환, 각종 UI 핸들러
-  actions.py            — 액션 클래스 계층 (이동, 공격, 줍기, 버리기, 계단 등)
+  actions.py            — 액션 클래스 계층 (이동, 공격, 줍기, 버리기, 장비, 계단 등)
   procgen.py            — 던전 랜덤 생성 + 층별 가중치 기반 엔티티 배치
   tile_types.py         — 타일 데이터 정의 (floor, wall, down_stairs, SHROUD)
   color.py              — 게임 전체 색상 상수
@@ -138,8 +148,10 @@
   exceptions.py         — Impossible, QuitWithoutSaving 예외 정의
   components/
     base_component.py   — 컴포넌트 기반 클래스 (engine, gamemap 접근)
-    fighter.py          — 전투 스탯 (hp, defense, power), 사망 처리
+    fighter.py          — 전투 스탯 (hp, base_defense, base_power + 장비 보너스), 사망 처리
     level.py            — 경험치 획득 → 레벨업 → 능력치 선택 흐름
+    equipment.py        — 장비 슬롯 관리 + 스탯 보너스 합산
+    equippable.py       — 장비 아이템 정의 (단검, 검, 가죽 갑옷, 사슬 갑옷)
     ai.py               — HostileEnemy, ConfusedEnemy AI
     inventory.py        — 인벤토리 (아이템 목록, 줍기/버리기)
     consumable.py       — 소비 아이템 효과 (포션, 번개/파이어볼/혼란 스크롤)
