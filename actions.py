@@ -122,13 +122,15 @@ class DropItem(ItemAction):
             
         self.entity.inventory.drop(self.item)
 
+# 장비 장착/해제 액션 — 인벤토리에서 장비 아이템을 선택했을 때 실행
 class EquipAction(Action):
     def __init__(self, entity: Actor, item: Item):
+        """장착/해제할 아이템을 저장합니다."""
         super().__init__(entity)
-
         self.item = item
 
     def perform(self) -> None:
+        """Equipment.toggle_equip()으로 장착 또는 해제를 전환합니다."""
         self.entity.equipment.toggle_equip(self.item)
 
 # 아무 행동도 하지 않고 한 턴을 소비

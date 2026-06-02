@@ -54,9 +54,12 @@ def new_game() -> Engine:
         "Hello and welcome, adventurer, to yet another dungeon!", color.welcome_text
     )
 
+    # 시작 장비 지급 — 단검과 가죽 갑옷을 인벤토리에 추가하고 즉시 장착
+    # add_message=False : 게임 시작 시 장착 메시지가 표시되지 않도록 억제
     dagger = copy.deepcopy(entity_factories.dagger)
     leather_armor = copy.deepcopy(entity_factories.leather_armor)
 
+    # 인벤토리의 소유자를 플레이어로 설정
     dagger.parent = player.inventory
     leather_armor.parent = player.inventory
 

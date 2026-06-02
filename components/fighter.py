@@ -56,14 +56,17 @@ class Fighter(BaseComponent):
 
     @property
     def defense(self) -> int:
+        """실제 방어력을 반환합니다. (기본 방어력 + 장비 보너스)"""
         return self.base_defense + self.defense_bonus
 
     @property
     def power(self) -> int:
+        """실제 공격력을 반환합니다. (기본 공격력 + 장비 보너스)"""
         return self.base_power + self.power_bonus
 
     @property
     def defense_bonus(self) -> int:
+        """장착된 장비에서 오는 방어력 보너스를 반환합니다. 장비가 없으면 0."""
         if self.parent.equipment:
             return self.parent.equipment.defense_bonus
         else:
@@ -71,6 +74,7 @@ class Fighter(BaseComponent):
 
     @property
     def power_bonus(self) -> int:
+        """장착된 장비에서 오는 공격력 보너스를 반환합니다. 장비가 없으면 0."""
         if self.parent.equipment:
             return self.parent.equipment.power_bonus
         else:

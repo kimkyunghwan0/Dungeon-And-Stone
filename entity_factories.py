@@ -77,12 +77,15 @@ lightning_scroll = Item(
     consumable=consumable.LightningDamageConsumable(damage=20, maximum_range=5),
 )
 
+# 단검 — 초기 무기 (공격력 +2)
 dagger = Item(
     char="/", color=(0, 191, 255), name="Dagger", equippable=equippable.Dagger()
 )
 
+# 검 — 강화 무기 (공격력 +4)
 sword = Item(char="/", color=(0, 191, 255), name="Sword", equippable=equippable.Sword())
 
+# 가죽 갑옷 — 초기 방어구 (방어력 +1)
 leather_armor = Item(
     char="[",
     color=(139, 69, 19),
@@ -90,6 +93,7 @@ leather_armor = Item(
     equippable=equippable.LeatherArmor(),
 )
 
+# 사슬 갑옷 — 강화 방어구 (방어력 +3)
 chain_mail = Item(
     char="[", color=(139, 69, 19), name="Chain Mail", equippable=equippable.ChainMail()
 )

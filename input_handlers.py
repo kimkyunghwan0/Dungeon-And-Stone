@@ -417,7 +417,7 @@ class InventoryActivateHandler(InventoryEventHandler):
     def on_item_selected(self, item: Item) -> Optional[ActionOrHandler]:
         """선택된 아이템에 대한 사용 액션을 반환합니다."""
         if item.consumable:
-            # Return the action for the selected item.
+            # 소비 아이템 → consumable의 get_action()으로 사용 액션 반환
             return item.consumable.get_action(self.engine.player)
         elif item.equippable:
             return actions.EquipAction(self.engine.player, item)
